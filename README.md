@@ -1,2 +1,198 @@
 # Synology-SMART-test-scheduler
 Scheduler of Synology SMART tests
+
+<div id="top"></div>
+<!--
+*** comments....
+-->
+
+
+
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+
+<h3 align="center">Synology SMART test scheduler + email notifications</h3>
+
+  <p align="center">
+    This project is comprised of a shell script that is configured in Synology Task Scheduler to run once every 10 to 15 minutes. The script performs commands to perform SMART tests on a user defined schedule.  
+    <br />
+    <a href="https://github.com/wallacebrf/Synology-SMART-test-scheduler"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/wallacebrf/Synology-SMART-test-scheduler/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/wallacebrf/Synology-SMART-test-scheduler/issues">Request Feature</a>
+  </p>
+</div>
+
+
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#About_the_project_Details">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Road map</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
+
+
+
+<!-- ABOUT THE PROJECT -->
+### About_the_project_Details
+
+It is rumored that Synology may be removing the ability to sscedule SMART tests in the DSM GUI. 
+
+This script has been pre-emptively made to cover this possibility. This script along with the associated web-interface will allow for:
+
+#1.) scheduling extended SMART tests either daily, weekly, monthly, 3-months, 6-months (short test scheduling not supported) 
+
+#2.) when scheduling tests, either allow for all drives at once (as DSM already does) or one drive at a time performed sequentially (one drive at a time reduces the system load)
+
+#3.) manually trigger long SMART tests either on all drives or select drives
+
+#4.) manually cancel active SMART tests on individually select-able drives
+
+#5.) see the historical logs of previous SMART tests
+
+#6.) see the "live" status of SMART testing 
+
+Example outputs of the script
+
+## No Scheduled Tests 
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/1.png" alt="Logo">
+
+## All drives concurrently, one drive finished, two others still in progress
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/2.png" alt="Logo">
+
+## drives testing individually, disk 1 of 3 scanning, other two drives waiting
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/3.png" alt="Logo">
+
+## drives testing individually, disk 2 of 3 scanning, the first marked complete and the third drive waiting 
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/4.png" alt="Logo">
+
+## drives testing individually, disk 3 of 3 scanning, the first and 2nd marked complete
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/5.png" alt="Logo">
+
+## email of a disk starting testing
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/6.png" alt="Logo">
+
+## email of a disk finishing testing 
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/7.png" alt="Logo">
+
+## disk test manually cancelled by the user
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/8.png" alt="Logo">
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+This project is written around a Synology NAS, however it should work with most linux based systems 
+
+### Prerequisites
+
+For email notifications:
+
+This project requires EITHER  Synology Mail Plus Server to be installed and running
+
+OR
+
+This project requires that Synology's ```Control Panel --> Notifications``` SMTP server settings are properly configured. 
+
+The user can choose which email notification service is preferred. It is recommended to use the Synology control panel SMTP notification option.
+
+### Installation
+
+The script can be downloaded and placed in any shared folder desired on the Synology NAS that can be accessed by the web-station package
+
+the script has the following configuration parameters
+
+```
+config_file_location="/volume1/web/synology_smart/config"
+config_file_name="smart_control_config.txt"
+log_dir="/volume1/web/synology_smart/log"
+temp_dir="/volume1/web/synology_smart/temp"
+email_contents="SMART_email_contents.txt"
+lock_file_location="$temp_dir/SMART_control.lock"
+```
+Ensure that the path ```/volume1/web/``` matches where your NAS web-station package has its root configured. This setup guide does not detail how to install and configure a workikng PHP web-server on synology. 
+
+Once the script is on the NAS, go to Control Panel --> Task Scheduler
+
+Click on Create --> Scheduled Task --> User-defined_script
+
+In the new window, name the script something useful like "Smart Schedule" and set user to root
+
+Go to the schedule tab, and at the bottom, change the "Frequency" to "every 15-minutes" and change the "first time run" to "00:00" and "last time run" to "23:45". 
+
+Go to the "Task Settings" tab. in the "user defined script" area at the bottom enter ```bash %PATH_TO_SCRIPT%/synology_SMART_control.sh``` for example. Ensure the path is the path to where the file was placed on the NAS. 
+
+Click OK. Enter your account password to confirm that the task will use root
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+
+
+<!-- LICENSE -->
+## License
+
+This is free to use code, use as you wish
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+
+
+<!-- CONTACT -->
+## Contact
+
+Your Name - Brian Wallace - wallacebrf@hotmail.com
+
+Project Link: [https://github.com/wallacebrf/Synology-SMART-test-scheduler)
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+
+
+<!-- ACKNOWLEDGMENTS -->
+## Acknowledgments
+
+credit for the floating point math here: https://phoenixnap.com/kb/bash-math
+
+credit for progress bar: Author : Teddy Skarin #https://github.com/fearside/ProgressBar/blob/master/progressbar.sh
+
+credit for the function to display total time in a nice format: user: Stéphane Gimenez  https://unix.stackexchange.com/questions/27013/displaying-seconds-as-days-hours-mins-seconds
+
+
+<p align="right">(<a href="#top">back to top</a>)</p>
