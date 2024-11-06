@@ -83,7 +83,7 @@ Example outputs of the script
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/1.png" alt="Logo">
 
-### All drives concurrently, one drive finished, two others still in progress
+### All drives concurrently
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/2.png" alt="Logo">
 
@@ -110,6 +110,14 @@ Example outputs of the script
 ### disk test manually canceled by the user
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/8.png" alt="Logo">
+
+### manual test running
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/9.png" alt="Logo">
+
+### disk test manually started by the user
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/10.png" alt="Logo">
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
