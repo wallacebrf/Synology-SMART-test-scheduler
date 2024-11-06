@@ -114,12 +114,12 @@ function send_email(){
 			echo "cannot send email as directory \"${3}\" does not exist"
 		fi
 	fi
-}	
+}
 
 ##################################################################################################################
 #Read in configuration file and skip script execution  if the file is missing or corrupted 
 ##################################################################################################################
-if [ -r $config_file_location/$config_file_name ]; then
+if [ -r "$config_file_location/$config_file_name" ]; then
 	#file is available and readable 
 	
 	#read in file
@@ -129,19 +129,23 @@ if [ -r $config_file_location/$config_file_name ]; then
 	
 	#verify the correct number of configuration parameters are in the configuration file
 	if [[ ! ${#explode[@]} == 8 ]]; then
-		echo "WARNING - the configuration file is incorrect or corrupted. It should have 8 parameters, it currently has ${#explode[@]} parameters."
+		if [ $enable_email_notifications -eq 1 ]; then
+			send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - WARNING - the configuration file is incorrect or corrupted." "NAS_name - WARNING - the configuration file is incorrect or corrupted. It should have 8 parameters, it currently has ${#explode[@]} parameters." $use_send_mail
+		else
+			echo -e "now_date\n\NAS_name - WARNING - the configuration file is incorrect or corrupted. It should have 8 parameters, it currently has ${#explode[@]} parameters."
+		fi
 		exit 1
 	fi	
 
-	script_enable=(${explode[0]})
-	next_scan_time_window=(${explode[1]}) # 1=daily, 2=weekly, 3=monthly, 4= every three months, 5= every 6 months
-	enable_email_notifications=(${explode[2]})
-	from_email_address=(${explode[3]})
-	to_email_address=(${explode[4]})
-	next_scan_type=(${explode[5]}) #1=all drives, 0 = one drive at a time
+	script_enable=${explode[0]}
+	next_scan_time_window=${explode[1]} # 1=daily, 2=weekly, 3=monthly, 4= every three months, 5= every 6 months
+	enable_email_notifications=${explode[2]}
+	from_email_address=${explode[3]}
+	to_email_address=${explode[4]}
+	next_scan_type=${explode[5]} #1=all drives, 0 = one drive at a time
 	next_scan_type=0
-	NAS_name=(${explode[6]})
-	use_send_mail=(${explode[7]})
+	NAS_name=${explode[6]}
+	use_send_mail=${explode[7]}
 	
 	
 ##################################################################################################################
@@ -150,6 +154,9 @@ if [ -r $config_file_location/$config_file_name ]; then
 	if [ $script_enable -eq 1 ]
 	then
 
+		time_hour=$(date +%H)
+		time_min=$(date +%M)
+		
 		##################################################################################################################
 		#Get listing of all installed SATA drives in the system
 		##################################################################################################################
@@ -169,11 +176,12 @@ if [ -r $config_file_location/$config_file_name ]; then
 		else
 			echo "No Valid SATA Disks Found, Skipping Script"
 			valid_array=() #making empty array so we do not collect any data for SATA drives and try NVME drives next
+			exit 1
 		fi
 
 
 		##################################################################################################################
-		#gather the following on all installed SATA drives: 1.) current SMART test status, 2.) current smart test percentage 3.) disk model 4.) disk serial 5.) disk status (Passed/Failed) 6.) disk size
+		#gather the following on all installed SATA drives: 1.) current SMART test status, 2.) current smart test percentage 3.) disk model 4.) disk serial 5.) disk status (Passed/Failed) 6.) disk size 7.) Disk slot (Synology only) 8.) Disk location (Synology only)
 		##################################################################################################################
 		disk_smart_status_array=()
 		disk_smart_percent_array=()
@@ -182,8 +190,13 @@ if [ -r $config_file_location/$config_file_name ]; then
 		disk_smart_pass_fail_array=()
 		disk_capacity_array=()
 		disk_cancelation_array=()
+		disk_drive_slot_array=()
+		disk_unit_location_array=()
 		disk_names=()
 		
+		#determine if this is a Synology system, if it is NOT a Synology system, then this step is not needed
+		syno_check=$(cat /proc/sys/kernel/syno_hw_version | grep "No such file or directory")
+			
 		#now we can loop through all the available disks to see if SMART scans are active or not
 		xx=0
 		for xx in "${!valid_array[@]}"; do
@@ -216,7 +229,26 @@ if [ -r $config_file_location/$config_file_name ]; then
 			
 			#extract disk capacity
 			disk_capacity_array+=("$(echo "$raw_data" | grep "User Capacity:")") 				#get just the line containing the serial number
-
+			
+			#get Synology drive slot details (if the system is a Synology)
+			if [[ $syno_check != *"No such file or directory"* ]]; then
+				disk_drive_slot_array+=($(synodisk --get_location_form "$disk" | grep 'Disk id' | awk '{print $NF}'))
+				disk_unit_location=$(synodisk --get_location_form "$disk" | grep 'Disk cnridx:' | awk '{print $NF}')
+				if [[ $disk_unit_location == 0 ]]; then
+					disk_unit_location_array+=("Main Unit")
+				else
+					disk_unit_location_array+=("Expansion Unit $disk_unit_location")
+				fi
+				
+				#save a configuration file so the script and web-interface know this is a Synology system
+				if [ -r "$config_file_location/syno_model.txt" ]; then
+					echo ""
+				else
+					# Get NAS model
+					model=$(cat /proc/sys/kernel/syno_hw_version)
+					echo "$model" > "$config_file_location/syno_model.txt"
+				fi
+			fi
 
 			#determine if a SMART test is active or not
 			if [[ $disk_smart_status == *"Self-test routine in progress..."* ]]; then 		#yes a test is active
@@ -231,41 +263,59 @@ if [ -r $config_file_location/$config_file_name ]; then
 					now=$(date +"%D %T")
 					echo -n "$now" > "$log_dir/disk_scan_status.txt"
 				fi
-				echo -n ";$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+				
+				if [[ $syno_check == *"No such file or directory"* ]]; then
+					#not a Synology
+					echo -n ";$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+				else
+					echo -n ";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}];$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+				fi
 			else
 				#no active test is occurring on the drive
 				if [ $xx -eq 0 ]; then
 					now=$(date +"%D %T")
 					echo -n "$now" > "$log_dir/disk_scan_status.txt"
 				fi
-				echo -n ";$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+				
+				if [[ $syno_check == *"No such file or directory"* ]]; then
+					#not a Synology
+					echo -n ";$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+				else
+					echo -n ";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}];$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+				fi
 				disk_smart_status_array[$xx]=0
 				disk_smart_percent_array[$xx]=0
 			fi
 		done
 		
-		##################################################################################################################
-		#determine when the next scheduled test is expected to occur. 
-		##################################################################################################################
-		current_time=$( date +%s )
-		if [ -r "$config_file_location/next_scan_time.txt" ]; then
-		#file is available and readable
-			read next_scan_time < "$config_file_location/next_scan_time.txt"
+		if ls "$temp_dir/manual_start"* 1> /dev/null 2>&1; then
+		#if [ -r "$temp_dir/manual_start.txt" ]; then
+			echo -e "User manually executed SMART test is active, skipping the schedule for now until test is complete\n\n\n"
+			next_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)
 		else
-			#file is missing, let's write to disk some default values. these values can then be adjusted in the web-interface
-			#next_scan_time_window: 1=daily, 2=weekly, 3=monthly, 4= every three months, 5= every 6 months
-			if [ $next_scan_time_window -eq 1 ]; then
-				next_scan_time=$(date -d "now()+1 day" +"%s")								 						#calculate 1 day from now, convert it to epoch time
-			elif [ $next_scan_time_window -eq 2 ]; then
-				next_scan_time=$(date -d "now()+7 day" +"%s")								 						#calculate 7 day from now, convert it to epoch time
-			elif [ $next_scan_time_window -eq 3 ]; then
-				next_scan_time=$(date -d "now()+1 month" +"%s")								 						#calculate 1 month from now, convert it to epoch time 
-			elif [ $next_scan_time_window -eq 4 ]; then
-				next_scan_time=$(date -d "now()+3 month" +"%s")								 						#calculate 3 month from now, convert it to epoch time
-			elif [ $next_scan_time_window -eq 5 ]; then
-				next_scan_time=$(date -d "now()+6 month" +"%s")								 						#calculate 6 month from now, convert it to epoch time
+			##################################################################################################################
+			#determine when the next scheduled test is expected to occur. 
+			##################################################################################################################
+			current_time=$( date +%s )
+			if [ -r "$config_file_location/next_scan_time.txt" ]; then
+			#file is available and readable
+				read next_scan_time < "$config_file_location/next_scan_time.txt"
+			else
+				#file is missing, let's write to disk some default values. these values can then be adjusted in the web-interface
+				#next_scan_time_window: 1=daily, 2=weekly, 3=monthly, 4= every three months, 5= every 6 months
+				if [ $next_scan_time_window -eq 1 ]; then
+					next_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)								 						#calculate 1 day from now, convert it to epoch time
+				elif [ $next_scan_time_window -eq 2 ]; then
+					next_scan_time=$(date --date="+7 days $time_hour:$time_min" +%s)								 						#calculate 7 day from now, convert it to epoch time
+				elif [ $next_scan_time_window -eq 3 ]; then
+					next_scan_time=$(date --date="+1 month $time_hour:$time_min" +%s)								 						#calculate 1 month from now, convert it to epoch time 
+				elif [ $next_scan_time_window -eq 4 ]; then
+					next_scan_time=$(date --date="+3 month $time_hour:$time_min" +%s)								 						#calculate 3 month from now, convert it to epoch time
+				elif [ $next_scan_time_window -eq 5 ]; then
+					next_scan_time=$(date --date="+6 month $time_hour:$time_min" +%s)								 						#calculate 6 month from now, convert it to epoch time
+				fi
+				echo -n "$next_scan_time" > "$config_file_location/next_scan_time.txt"
 			fi
-			echo -n "$next_scan_time" > "$config_file_location/next_scan_time.txt"
 		fi
 		
 		
@@ -288,16 +338,34 @@ if [ -r $config_file_location/$config_file_name ]; then
 				#if "cancel" temp file for particular drive exists in the temp folder, then perform the cancellation
 				#cancel temp file is created by web interface
 				smartctl -d sat -a -X ${disk_names[$xx]}
-				rm "$temp_dir/cancel_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+				
+				if [ -r "$temp_dir/cancel_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+					rm "$temp_dir/cancel_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+				fi
+				
+				if [ -r "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+					rm "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+				fi
+				
 				disk_smart_status_array[$xx]=0
 				disk_smart_percent_array[$xx]=0
 				disk_cancelation_array[$xx]=1
 				
 				#send email that the test is canceled 
 				if [ $enable_email_notifications -eq 1 ]; then
-					send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test Canceled by user" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+					if [[ $syno_check == *"No such file or directory"* ]]; then
+						#not a SYnology)
+						send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test Canceled by user" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+					else
+						send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}] SMART test Canceled by user" "\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+					fi
 				else
-					echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+					if [[ $syno_check == *"No such file or directory"* ]]; then
+						#not Synology
+						echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+					else
+						echo -e "now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+					fi
 				fi
 				sleep 1
 			fi
@@ -309,14 +377,26 @@ if [ -r $config_file_location/$config_file_name ]; then
 			if [ -r "$temp_dir/start_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
 			
 				rm "$temp_dir/start_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+				
+				echo "$(date)" > "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
 			
 				#if "start" temp file for particular drive exists in the temp folder, then perform the test start
 				#start temp file is created by web interface
 				
-				echo -e "Disk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active, but has been commanded to start manually by the user \n\n\n\n\n"
+				if [[ $syno_check == *"No such file or directory"* ]]; then
+					#Not Synology
+					echo -e "Disk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active, but has been commanded to start manually by the user \n\n\n\n\n"
+				else
+					echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active, but has been commanded to start manually by the user \n\n\n\n\n"
+				fi
 				
 				if [ ${disk_smart_status_array[$xx]} -eq 1 ]; then
-					echo "Test already in progress on ${disk_names[$xx]}....."
+					if [[ $syno_check == *"No such file or directory"* ]]; then
+						#Not Synology
+						echo "Test already in progress on ${disk_names[$xx]}....."
+					else
+						echo "Test already in progress on Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]....."
+					fi
 				else
 					#command the test to start
 					smartctl -d sat -a -t long ${disk_names[$xx]}
@@ -331,15 +411,33 @@ if [ -r $config_file_location/$config_file_name ]; then
 							
 					#send email notification that the test was started
 					if [ $enable_email_notifications -eq 1 ]; then
-						send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test MANUALLY started" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test was MANUALLY started." $use_send_mail
+						if [[ $syno_check == *"No such file or directory"* ]]; then
+							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test MANUALLY started" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test was MANUALLY started." $use_send_mail
+						else
+							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}] SMART test MANUALLY started" "\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test was MANUALLY started." $use_send_mail
+						fi
 					else
-						echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test was MANUALLY started."
+						if [[ $syno_check == *"No such file or directory"* ]]; then
+							echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test was MANUALLY started."
+						else
+							echo -e "$now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test was MANUALLY started."
+						fi
 					fi
 					
 					#create new history log file
 					echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"		
 				fi
 				sleep 1
+			fi
+			
+			
+			##################################################################################################################
+			#process Completion of user commanded SMART manual start
+			##################################################################################################################
+			if [ -r "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+				if [ ${disk_smart_status_array[$xx]} -eq 0 ]; then
+					rm "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+				fi
 			fi
 		
 			##################################################################################################################
@@ -365,9 +463,19 @@ if [ -r $config_file_location/$config_file_name ]; then
 						#send email that the test is complete
 						if [ $enable_email_notifications -eq 1 ]; then
 							if [ ${disk_cancelation_array[$xx]} -eq 0 ]; then
-								send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+								if [[ $syno_check == *"No such file or directory"* ]]; then
+									#Not Synology
+									send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+								else
+									send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}] SMART test completed" "\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+								fi
 							else
-								echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+								if [[ $syno_check == *"No such file or directory"* ]]; then
+									#not Synology
+									echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+								else
+									echo -e "now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+								fi
 							fi
 						fi
 					fi
@@ -379,7 +487,12 @@ if [ -r $config_file_location/$config_file_name ]; then
 					#check to see if any scans are already active on a disk
 					if [ ${disk_smart_status_array[$xx]} -eq 1 ]; then
 						#yes a scan is active so we don't need to do anything
-						echo -e "Disk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						if [[ $syno_check == *"No such file or directory"* ]]; then
+							#Not Synology
+							echo -e "Disk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						else
+							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						fi
 					else
 						#no, a scan is not active, so let's start a scan on the drive
 						echo -e "Disk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active, processing scheduled tests, all drives will be scanned concurrently \n\n\n\n\n"
@@ -393,37 +506,62 @@ if [ -r $config_file_location/$config_file_name ]; then
 						
 						#send email notification that the test was started
 						if [ $enable_email_notifications -eq 1 ]; then
-							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test started" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started." $use_send_mail
+							if [[ $syno_check == *"No such file or directory"* ]]; then
+								send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test started" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started." $use_send_mail
+							else
+								send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}] SMART test started" "\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started." $use_send_mail
+							fi
 						else
-							echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started."
+							if [[ $syno_check == *"No such file or directory"* ]]; then
+								echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started."
+							else
+								echo -e "$now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started."
+							fi
 						fi
 						
 						#create new history log file
-						echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+						if [[ $syno_check == *"No such file or directory"* ]]; then
+							echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+						else
+							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+						fi
 						
 						#need to update when the next test will occur since we have now started the current set of tests
 						if [ $date_updated -eq 0 ]; then																			#only want to save the updated date once within the loop
 							if [ $next_scan_time_window -eq 1 ]; then
-								future_scan_time=$(date -d "now()+1 day" +"%s")								 						#calculate 1 day from now, convert it to epoch time
+								future_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)								 						#calculate 1 day from now, convert it to epoch time
 							elif [ $next_scan_time_window -eq 2 ]; then
-								future_scan_time=$(date -d "now()+7 day" +"%s")								 						#calculate 7 day from now, convert it to epoch time
+								future_scan_time=$(date --date="+7 days $time_hour:$time_min" +%s)								 						#calculate 7 day from now, convert it to epoch time
 							elif [ $next_scan_time_window -eq 3 ]; then
-								future_scan_time=$(date -d "now()+1 month" +"%s")								 					#calculate 1 month from now, convert it to epoch time 
+								future_scan_time=$(date --date="+1 month $time_hour:$time_min" +%s)								 						#calculate 1 month from now, convert it to epoch time 
 							elif [ $next_scan_time_window -eq 4 ]; then
-								future_scan_time=$(date -d "now()+3 month" +"%s")								 					#calculate 3 month from now, convert it to epoch time
+								future_scan_time=$(date --date="+3 month $time_hour:$time_min" +%s)								 						#calculate 3 month from now, convert it to epoch time
 							elif [ $next_scan_time_window -eq 5 ]; then
-								future_scan_time=$(date -d "now()+6 month" +"%s")								 					#calculate 6 month from now, convert it to epoch time
+								future_scan_time=$(date --date="+6 month $time_hour:$time_min" +%s)								 						#calculate 6 month from now, convert it to epoch time
 							fi
 							echo -n "$future_scan_time" > "$config_file_location/next_scan_time.txt"
 							date_updated=1
 						fi
 					fi	
 				else
-					echo "Not yet time to scan drive ${disk_names[$xx]}. Next scan scheduled for $(date -d @$next_scan_time)"
-					if [ ${disk_smart_status_array[$xx]} -eq 1 ]; then
-						echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+					if [[ $syno_check == *"No such file or directory"* ]]; then
+						echo "Not yet time to scan drive ${disk_names[$xx]}. Next scan scheduled for $(date -d @$next_scan_time)"
 					else
-						echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
+						echo "Not yet time to scan Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]. Next scan scheduled for $(date -d @$next_scan_time)"
+					fi
+					
+					if [ ${disk_smart_status_array[$xx]} -eq 1 ]; then
+						if [[ $syno_check == *"No such file or directory"* ]]; then
+							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						else
+							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						fi
+					else
+						if [[ $syno_check == *"No such file or directory"* ]]; then
+							echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
+						else
+							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
+						fi
 					fi
 				fi
 			
@@ -446,7 +584,11 @@ if [ -r $config_file_location/$config_file_name ]; then
 					if [ -r "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
 						
 						tests_in_progress=1
-						echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						if [[ $syno_check == *"No such file or directory"* ]]; then
+							echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						else
+							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						fi
 						
 						if [ ${disk_smart_status_array[$xx]} -eq 0 ]; then
 							
@@ -459,29 +601,23 @@ if [ -r $config_file_location/$config_file_name ]; then
 							else
 								echo -e "Test Canceled by user: $(date +'%d/%m/%Y %H:%M:%S:%3N')\nTest Status: ${disk_smart_pass_fail_array[$xx]}" >> "$log_dir/history/$history_file_name"
 							fi
+							
 							#remove our temp status file
-							rm "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
-										
+							if [ -r "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+								rm "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+							fi
+									
+									
 							#if we are testing the last drive and it is finished, then we need to delete the tracker file, otherwise there are more drives to scan and we need to append the current drive to the tracker
 							if [ $xx -eq $(( ${#valid_array[@]} -1 )) ]; then
-								rm "$temp_dir/individual_disk_testing_tracker.txt"
-								
-								#need to update when the next test will occur since we have now started the current set of tests
-								if [ $date_updated -eq 0 ]; then																			#only want to save the updated date once within the loop
-									if [ $next_scan_time_window -eq 1 ]; then
-										future_scan_time=$(date -d "now()+1 day" +"%s")								 						#calculate 1 day from now, convert it to epoch time
-									elif [ $next_scan_time_window -eq 2 ]; then
-										future_scan_time=$(date -d "now()+7 day" +"%s")								 						#calculate 7 day from now, convert it to epoch time
-									elif [ $next_scan_time_window -eq 3 ]; then
-										future_scan_time=$(date -d "now()+1 month" +"%s")								 					#calculate 1 month from now, convert it to epoch time 
-									elif [ $next_scan_time_window -eq 4 ]; then
-										future_scan_time=$(date -d "now()+3 month" +"%s")								 					#calculate 3 month from now, convert it to epoch time
-									elif [ $next_scan_time_window -eq 5 ]; then
-										future_scan_time=$(date -d "now()+6 month" +"%s")								 					#calculate 6 month from now, convert it to epoch time
-									fi
-									echo -n "$future_scan_time" > "$config_file_location/next_scan_time.txt"
-									date_updated=1
-								fi	
+								if [ -r "$temp_dir/individual_disk_testing_tracker.txt" ]; then
+									rm "$temp_dir/individual_disk_testing_tracker.txt"
+								fi
+			
+								#read in the previously saved next start time (calculated when the script started the first disk of individual disk testing), and save it to the permanent file
+								read next_scan_time_temp < "$temp_dir/next_scan_time_temp.txt"
+								rm "$temp_dir/next_scan_time_temp.txt"
+								echo -n "$next_scan_time_temp" > "$config_file_location/next_scan_time.txt"
 							else
 								#we are not testing the last drive, so we have more to test, append the disk name to the tracker file so we can keep track of which disks have finished
 								echo -n "||$(echo ${disk_names[$xx]} | cut -c 6-)||" >> "$temp_dir/individual_disk_testing_tracker.txt"
@@ -492,9 +628,17 @@ if [ -r $config_file_location/$config_file_name ]; then
 							#send email that the test is complete
 							if [ $enable_email_notifications -eq 1 ]; then
 								if [ ${disk_cancelation_array[$xx]} -eq 0 ]; then
-									send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+									if [[ $syno_check == *"No such file or directory"* ]]; then
+										send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+									else
+										send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}] SMART test completed" "\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+									fi
 								else
-									echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+									if [[ $syno_check == *"No such file or directory"* ]]; then
+										echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+									else
+										echo -e "now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+									fi
 								fi
 							fi
 						fi
@@ -503,8 +647,13 @@ if [ -r $config_file_location/$config_file_name ]; then
 						read history < "$temp_dir/individual_disk_testing_tracker.txt"
 						
 						if [[ $history == *"$(echo ${disk_names[$xx]} | cut -c 6-)"* ]]; then
+						
 							#if the drive is in the history tracker file, then it has already been tested
-							echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting Completed. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
+							if [[ $syno_check == *"No such file or directory"* ]]; then
+								echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting Completed. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
+							else
+								echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting Completed. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
+							fi
 						else
 							if [ $tests_in_progress -eq 0 ]; then
 								if [ ${disk_smart_status_array[$xx]} -eq 1 ]; then
@@ -513,11 +662,42 @@ if [ -r $config_file_location/$config_file_name ]; then
 									else
 										echo "$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt" > "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
 									fi
+									
 									tests_in_progress=1
-									echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+									if [[ $syno_check == *"No such file or directory"* ]]; then
+										echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+									else
+										echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+									fi
 								else
 									#no, a scan is not active, so let's start a scan on the drive
-									echo -e "Disk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active, processing scheduled tests, one drive tested at a time sequentially \n\n\n\n\n"
+									if [[ $syno_check == *"No such file or directory"* ]]; then
+										echo -e "Disk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active, processing scheduled tests, one drive tested at a time sequentially \n\n\n\n\n"
+									else
+										echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active, processing scheduled tests, one drive tested at a time sequentially \n\n\n\n\n"
+									fi
+									
+									#we need to save when the next scan will occur in the future, but we do not want to overwrite the value currently saved, so we will saved a temp file with the future value which will be saved when all drives are done
+									if [ -r "$temp_dir/next_scan_time_temp.txt" ]; then
+										echo ""
+									else
+										#need to update when the next test will occur since we have now started the current set of tests
+										if [ $date_updated -eq 0 ]; then																			#only want to save the updated date once within the loop
+											if [ $next_scan_time_window -eq 1 ]; then
+												future_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)								 						#calculate 1 day from now, convert it to epoch time
+											elif [ $next_scan_time_window -eq 2 ]; then
+												future_scan_time=$(date --date="+7 days $time_hour:$time_min" +%s)								 						#calculate 7 day from now, convert it to epoch time
+											elif [ $next_scan_time_window -eq 3 ]; then
+												future_scan_time=$(date --date="+1 month $time_hour:$time_min" +%s)								 						#calculate 1 month from now, convert it to epoch time 
+											elif [ $next_scan_time_window -eq 4 ]; then
+												future_scan_time=$(date --date="+3 month $time_hour:$time_min" +%s)								 						#calculate 3 month from now, convert it to epoch time
+											elif [ $next_scan_time_window -eq 5 ]; then
+												future_scan_time=$(date --date="+6 month $time_hour:$time_min" +%s)								 						#calculate 6 month from now, convert it to epoch time
+											fi
+											echo -n "$future_scan_time" > "$temp_dir/next_scan_time_temp.txt"
+											date_updated=1
+										fi
+									fi
 									
 									#command the test to start
 									smartctl -d sat -a -t long ${disk_names[$xx]}
@@ -531,16 +711,32 @@ if [ -r $config_file_location/$config_file_name ]; then
 									
 									#send email notification that the test was started
 									if [ $enable_email_notifications -eq 1 ]; then
-										send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test started" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started." $use_send_mail
+										if [[ $syno_check == *"No such file or directory"* ]]; then
+											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test started" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started." $use_send_mail
+										else
+											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}] SMART test started" "\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started." $use_send_mail
+										fi
 									else
-										echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started."
+										if [[ $syno_check == *"No such file or directory"* ]]; then
+											echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started."
+										else
+											echo -e "$now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nExtended SMART test has started."
+										fi
 									fi
 									
 									#create new history log file
-									echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+									if [[ $syno_check == *"No such file or directory"* ]]; then
+										echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+									else
+										echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+									fi
 								fi	
 							else
-								echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nDisk is being skipped for now as another drive's test is already in progress.\n\n#################################################################\n\n"
+								if [[ $syno_check == *"No such file or directory"* ]]; then
+									echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nDisk is being skipped for now as another drive's test is already in progress.\n\n#################################################################\n\n"
+								else
+									echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nDisk is being skipped for now as another drive's test is already in progress.\n\n#################################################################\n\n"
+								fi
 								tests_in_progress=1
 								disk_smart_status_array[$xx]=1
 							fi		
@@ -560,31 +756,58 @@ if [ -r $config_file_location/$config_file_name ]; then
 							fi
 							
 							#now that testing is complete, if the temp file exists, delete it
-							rm "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+							if [ -r "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+								rm "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+							fi
 							
 							#send email that the test is complete
 							if [ $enable_email_notifications -eq 1 ]; then
 								if [ ${disk_cancelation_array[$xx]} -eq 0 ]; then
-									send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+									if [[ $syno_check == *"No such file or directory"* ]]; then
+										send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+									else
+										send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}] SMART test completed" "\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" $use_send_mail
+									fi
 								else
-									echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+									if [[ $syno_check == *"No such file or directory"* ]]; then
+										echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+									else
+										echo -e "now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+									fi
 								fi
 							fi
 						fi
 					fi
 					
-					echo "Not yet time to scan drive ${disk_names[$xx]}. Next scan scheduled for $(date -d @$next_scan_time)"
-					if [ ${disk_smart_status_array[$xx]} -eq 1 ]; then
-						echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+					if [[ $syno_check == *"No such file or directory"* ]]; then
+						echo "Not yet time to scan drive ${disk_names[$xx]}. Next scan scheduled for $(date -d @$next_scan_time)"
 					else
-						echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
+						echo "Not yet time to scan Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]. Next scan scheduled for $(date -d @$next_scan_time)"
+					fi
+					if [ ${disk_smart_status_array[$xx]} -eq 1 ]; then
+						if [[ $syno_check == *"No such file or directory"* ]]; then
+							echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						else
+							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
+						fi
+					else
+						if [[ $syno_check == *"No such file or directory"* ]]; then
+							echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
+						else
+							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
+						fi
 					fi
 				fi
 				
 			fi			
 		done
-		
-		
-		
+	else
+		echo "script is disabled"
+	fi
+else
+	if [ $enable_email_notifications -eq 1 ]; then
+		send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Warning, cannot perform SMART tests as config file is missing" "NAS_name - Warning, cannot perform SMART tests as config file is missing" $use_send_mail
+	else
+		echo -e "now_date\n\NAS_name - Warning, cannot perform SMART tests as config file is missing"
 	fi
 fi
