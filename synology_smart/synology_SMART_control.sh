@@ -143,7 +143,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 	from_email_address=${explode[3]}
 	to_email_address=${explode[4]}
 	next_scan_type=${explode[5]} #1=all drives, 0 = one drive at a time
-	next_scan_type=0
+	next_scan_type=1
 	NAS_name=${explode[6]}
 	use_send_mail=${explode[7]}
 	
@@ -288,14 +288,15 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			fi
 		done
 		
-		if ls "$temp_dir/manual_start"* 1> /dev/null 2>&1; then
-		#if [ -r "$temp_dir/manual_start.txt" ]; then
+		if ls "$temp_dir/manual_start"* 1> /dev/null 2>&1; then		#check to see if any drives have been manually started
 			echo -e "User manually executed SMART test is active, skipping the schedule for now until test is complete\n\n\n"
-			next_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)
+			next_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)													#since manual tests are active, we want to hold off on performing scheduled tests, so purposefully add delay time to the time
 		else
+			
 			##################################################################################################################
 			#determine when the next scheduled test is expected to occur. 
 			##################################################################################################################
+			
 			current_time=$( date +%s )
 			if [ -r "$config_file_location/next_scan_time.txt" ]; then
 			#file is available and readable
@@ -337,6 +338,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			
 				#if "cancel" temp file for particular drive exists in the temp folder, then perform the cancellation
 				#cancel temp file is created by web interface
+				
 				smartctl -d sat -a -X ${disk_names[$xx]}
 				
 				if [ -r "$temp_dir/cancel_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
@@ -398,6 +400,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						echo "Test already in progress on Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]....."
 					fi
 				else
+					
 					#command the test to start
 					smartctl -d sat -a -t long ${disk_names[$xx]}
 					
@@ -432,7 +435,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			
 			
 			##################################################################################################################
-			#process Completion of user commanded SMART manual start
+			#process COMPLETION of user commanded SMART manual start
 			##################################################################################################################
 			if [ -r "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
 				if [ ${disk_smart_status_array[$xx]} -eq 0 ]; then
@@ -603,9 +606,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							fi
 							
 							#remove our temp status file
-							if [ -r "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
-								rm "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
-							fi
+							rm "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
 									
 									
 							#if we are testing the last drive and it is finished, then we need to delete the tracker file, otherwise there are more drives to scan and we need to append the current drive to the tracker
