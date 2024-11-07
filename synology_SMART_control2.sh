@@ -2,6 +2,41 @@
 #version 1.1 dated 11/7/2024
 #By Brian Wallace
 
+#to get error details: smartctl -l error device
+
+#Before performing a test, an approximate indication of the time duration of the various tests are displayed using the following command:
+
+#sudo smartctl -c /dev/sdc
+#Example output:
+
+#[...]
+#Short self-test routine 
+#recommended polling time: 	 (   2) minutes.
+#Extended self-test routine
+#recommended polling time: 	 (  83) minutes.
+#Conveyance self-test routine
+#recommended polling time: 	 (   5) minutes.
+#[...]
+
+
+#The following command can also be used, if only the test results should are displayed:
+
+#sudo smartctl -l selftest /dev/sdc
+#Example output:
+
+#smartctl 5.41 2011-06-09 r3365 [x86_64-linux-3.5.0-39-generic] (local build)
+#Copyright (C) 2002-11 by Bruce Allen, http://smartmontools.sourceforge.net
+
+#=== START OF READ SMART DATA SECTION ===
+#SMART Self-test log structure revision number 1
+#Num  Test_Description    Status                  Remaining  LifeTime(hours)  LBA_of_first_error
+# 1  Short offline       Completed without error       00%      2089         -
+# 2  Extended offline    Completed without error       00%      2087         -
+# 3  Short offline       Completed without error       00%      2084         -
+
+
+
+
 #Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
 
 #This script is preemptively being made due to rumors that Synology will remove the ability to schedule SMART tests in DSM. this script along with the associated web-interface will allow for:
