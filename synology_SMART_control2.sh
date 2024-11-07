@@ -346,23 +346,24 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		xx=0
 		for xx in "${!valid_array[@]}"; do
 		
+			disk_temp_file_name="$(echo ${disk_names[$xx]} | cut -c 6-).txt"	#takes "/dev/sata1" and saves just "sata1" for example. only saving from the 6th character to the end of the line
 		
 			##################################################################################################################
 			#process user commanded SMART test cancellation
 			##################################################################################################################
-			if [ -r "$temp_dir/cancel_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+			if [ -r "$temp_dir/cancel_$disk_temp_file_name" ]; then
 			
 				#if "cancel" temp file for particular drive exists in the temp folder, then perform the cancellation
 				#cancel temp file is created by web interface
 				
 				smartctl -d sat -a -X ${disk_names[$xx]}
 				
-				if [ -r "$temp_dir/cancel_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
-					rm "$temp_dir/cancel_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+				if [ -r "$temp_dir/cancel_$disk_temp_file_name" ]; then
+					rm "$temp_dir/cancel_$disk_temp_file_name"
 				fi
 				
-				if [ -r "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
-					rm "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+				if [ -r "$temp_dir/manual_start_$disk_temp_file_name" ]; then
+					rm "$temp_dir/manual_start_$disk_temp_file_name"
 				fi
 				
 				disk_smart_status_array[$xx]=0
@@ -392,9 +393,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			##################################################################################################################
 			#process user commanded SMART manual start
 			##################################################################################################################
-			if [ -r "$temp_dir/start_short_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ] || [ -r "$temp_dir/start_long_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+			if [ -r "$temp_dir/start_short_$disk_temp_file_name" ] || [ -r "$temp_dir/start_long_$disk_temp_file_name" ]; then
 				
-				echo "$(date)" > "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+				echo "$(date)" > "$temp_dir/manual_start_$disk_temp_file_name"
 			
 				#if "start" temp file for particular drive exists in the temp folder, then perform the test start
 				#start temp file is created by web interface
@@ -416,12 +417,12 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				else
 					
 					#command the test to start
-					if [ -r "$temp_dir/start_long_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]
+					if [ -r "$temp_dir/start_long_$disk_temp_file_name" ]
 						smartctl -d sat -a -t long ${disk_names[$xx]}
-						rm "$temp_dir/start_long_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
-					elif [ -r "$temp_dir/start_short_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]
+						rm "$temp_dir/start_long_$disk_temp_file_name"
+					elif [ -r "$temp_dir/start_short_$disk_temp_file_name" ]
 						smartctl -d sat -a -t short ${disk_names[$xx]}
-						rm "$temp_dir/start_short_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+						rm "$temp_dir/start_short_$disk_temp_file_name"
 					fi
 					
 					disk_smart_status_array[$xx]=1
@@ -429,7 +430,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					disk_cancelation_array[$xx]=0
 							
 					#save temp file so we know the particular drive test was started
-					echo "$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt" > "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
+					echo "$(date +'%Y-%m-%d')_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
 					echo -e "\n\n#################################################################\n\n"
 							
 					#send email notification that the test was started
@@ -448,7 +449,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					fi
 					
 					#create new history log file
-					echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"		
+					echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"		
 				fi
 				sleep 1
 			fi
@@ -457,9 +458,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			##################################################################################################################
 			#process COMPLETION of user commanded SMART manual start
 			##################################################################################################################
-			if [ -r "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+			if [ -r "$temp_dir/manual_start_$disk_temp_file_name" ]; then
 				if [ ${disk_smart_status_array[$xx]} -eq 0 ]; then
-					rm "$temp_dir/manual_start_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+					rm "$temp_dir/manual_start_$disk_temp_file_name"
 				fi
 			fi
 		
@@ -470,10 +471,10 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 
 				#If tests were started, but have now finished, send email alert that the drive's test is complete and save status to the disk's history files
 				if [ ${disk_smart_status_array[$xx]} -eq 0 ]; then
-					if [ -r "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+					if [ -r "$temp_dir/$disk_temp_file_name" ]; then
 						
 						#read in the history file created by the script when testing was started. then save when the test was completed, and what the test result was
-						read history_file_name < "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+						read history_file_name < "$temp_dir/$disk_temp_file_name"
 						if [ ${disk_cancelation_array[$xx]} -eq 0 ]; then
 							echo -e "Test Completed: $(date +'%d/%m/%Y %H:%M:%S:%3N')\nTest Status: ${disk_smart_pass_fail_array[$xx]}" >> "$log_dir/history/$history_file_name"
 						else
@@ -481,7 +482,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						fi
 						
 						#now that testing is complete, if the temp file exists, delete it
-						rm "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+						rm "$temp_dir/$disk_temp_file_name"
 						
 						#send email that the test is complete
 						if [ $enable_email_notifications -eq 1 ]; then
@@ -524,7 +525,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						smartctl -d sat -a -t long ${disk_names[$xx]}
 						
 						#save temp file so we know the particular drive test was started
-						echo "$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt" > "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
+						echo "$(date +'%Y-%m-%d')_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
 						echo -e "\n\n#################################################################\n\n"
 						
 						#send email notification that the test was started
@@ -544,9 +545,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						
 						#create new history log file
 						if [[ -n "$syno_check" ]]; then
-							echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+							echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"
 						else
-							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+							echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"
 						fi
 						
 						#need to update when the next test will occur since we have now started the current set of tests
@@ -604,7 +605,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					fi
 					
 					#check to see if the current drive is already being tested, or was previously commanded to test by seeing if the temp file exists
-					if [ -r "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+					if [ -r "$temp_dir/$disk_temp_file_name" ]; then
 						
 						tests_in_progress=1
 						if [[ -n "$syno_check" ]]; then
@@ -618,7 +619,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							#test was started since the temp file exists, but the test is not running which means the test was completed or the test was canceled
 							
 							#read in the history file created by the script when testing was started. then save when the test was completed, and what the test result was
-							read history_file_name < "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+							read history_file_name < "$temp_dir/$disk_temp_file_name"
 							if [ ${disk_cancelation_array[$xx]} -eq 0 ]; then
 								echo -e "Test Completed: $(date +'%d/%m/%Y %H:%M:%S:%3N')\nTest Status: ${disk_smart_pass_fail_array[$xx]}" >> "$log_dir/history/$history_file_name"
 							else
@@ -626,7 +627,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							fi
 							
 							#remove our temp status file
-							rm "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+							rm "$temp_dir/$disk_temp_file_name"
 									
 									
 							#if we are testing the last drive and it is finished, then we need to delete the tracker file, otherwise there are more drives to scan and we need to append the current drive to the tracker
@@ -678,10 +679,10 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						else
 							if [ $tests_in_progress -eq 0 ]; then
 								if [ ${disk_smart_status_array[$xx]} -eq 1 ]; then
-									if [ -r "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+									if [ -r "$temp_dir/$disk_temp_file_name" ]; then
 										echo ""
 									else
-										echo "$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt" > "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+										echo "$(date +'%Y-%m-%d')_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"
 									fi
 									
 									tests_in_progress=1
@@ -727,7 +728,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 									tests_in_progress=1
 									
 									#save temp file so we know the particular drive test was started
-									echo "$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt" > "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
+									echo "$(date +'%Y-%m-%d')_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
 									echo -e "\n\n#################################################################\n\n"
 									
 									#send email notification that the test was started
@@ -747,9 +748,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 									
 									#create new history log file
 									if [[ -n "$syno_check" ]]; then
-										echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+										echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"
 									else
-										echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+										echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"
 									fi
 								fi	
 							else
@@ -766,10 +767,10 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				else
 					#If tests were started manually , but have now finished, send email alert that the drive's test is complete and save status to the disk's history files
 					if [ ${disk_smart_status_array[$xx]} -eq 0 ]; then
-						if [ -r "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
+						if [ -r "$temp_dir/$disk_temp_file_name" ]; then
 							
 							#read in the history file created by the script when testing was started. then save when the test was completed, and what the test result was
-							read history_file_name < "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+							read history_file_name < "$temp_dir/$disk_temp_file_name"
 							if [ ${disk_cancelation_array[$xx]} -eq 0 ]; then
 								echo -e "Test Completed: $(date +'%d/%m/%Y %H:%M:%S:%3N')\nTest Status: ${disk_smart_pass_fail_array[$xx]}" >> "$log_dir/history/$history_file_name"
 							else
@@ -777,8 +778,8 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							fi
 							
 							#now that testing is complete, if the temp file exists, delete it
-							if [ -r "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt" ]; then
-								rm "$temp_dir/$(echo ${disk_names[$xx]} | cut -c 6-).txt"
+							if [ -r "$temp_dir/$disk_temp_file_name" ]; then
+								rm "$temp_dir/$disk_temp_file_name"
 							fi
 							
 							#send email that the test is complete
