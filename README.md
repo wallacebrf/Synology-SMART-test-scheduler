@@ -59,9 +59,7 @@ Scheduler of Synology SMART tests
 <!-- ABOUT THE PROJECT -->
 ### About_the_project_Details
 
-It is rumored that Synology may be removing the ability to schedule SMART tests in the DSM GUI. 
-
-https://www.reddit.com/r/synology/comments/1gh7x45/synology_is_going_to_deprecate_smart_task/
+It is <a href="https://www.reddit.com/r/synology/comments/1gh7x45/synology_is_going_to_deprecate_smart_task/">rumored</a> that Synology may be removing the ability to schedule SMART tests in the DSM GUI. 
 
 This script has been preemptively made to cover this possibility. While automated scheduling of SMART tests is already possible with <a href="https://help.ubuntu.com/community/Smartmontools">Smartmontools</a>, this requires the installation of <a href="https://community.synology.com/enu/forum/17/post/15462">IPKG</a> and editing files that are overwritten during system updates. 
 The purpose of this script is to be able to operate using Synology DSM in its "stock" form and configuration. 
