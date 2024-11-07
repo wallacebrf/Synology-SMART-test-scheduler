@@ -31,6 +31,13 @@ email_address="email@email.com"
 from_email_address="email@email.com"
 #########################################################
 
+#########################################################
+# Check script is running as root
+#########################################################
+if [[ $( whoami ) != "root" ]]; then
+    echo -e "This script must be run as sudo or root!"
+    exit 1
+fi
 
 ######################################################################################
 
