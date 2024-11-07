@@ -1,6 +1,8 @@
 #!/bin/bash
-#version 1.0 dated 11/2/2024
+#version 1.1 dated 11/7/2024
 #By Brian Wallace
+
+#Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
 
 #This script is preemptively being made due to rumors that Synology will remove the ability to schedule SMART tests in DSM. this script along with the associated web-interface will allow for:
 
@@ -354,6 +356,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			if [ -r "$temp_dir/cancel_$disk_temp_file_name" ]; then
 			
 				#if "cancel" temp file for particular drive exists in the temp folder, then perform the cancellation
+				#the cancel file for disk "/dev/sata1" would be for example "cancel_sata1". 
 				#cancel temp file is created by web interface
 				
 				smartctl -d sat -a -X ${disk_names[$xx]}
@@ -395,9 +398,11 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			##################################################################################################################
 			if [ -r "$temp_dir/start_short_$disk_temp_file_name" ] || [ -r "$temp_dir/start_long_$disk_temp_file_name" ]; then
 				
-				echo "$(date)" > "$temp_dir/manual_start_$disk_temp_file_name"
+				echo "$(date)" > "$temp_dir/manual_start_$disk_temp_file_name" #save a temp file so the script knows that a manual test was initiated
 			
 				#if "start" temp file for particular drive exists in the temp folder, then perform the test start
+				#the start file for disk "/dev/sata1" for a short test would be for example "manual_start_short_sata1".
+				#the start file for disk "/dev/sata1" for a long test would be for example "manual_start_long_sata1".
 				#start temp file is created by web interface
 				
 				if [[ -n "$syno_check" ]]; then
