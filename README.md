@@ -63,19 +63,24 @@ It is rumored that Synology may be removing the ability to schedule SMART tests 
 
 https://www.reddit.com/r/synology/comments/1gh7x45/synology_is_going_to_deprecate_smart_task/
 
-This script has been preemptively made to cover this possibility. This script along with the associated web-interface will allow for:
+This script has been preemptively made to cover this possibility. While automated scheduling of SMART tests is already possible with <a href="https://help.ubuntu.com/community/Smartmontools">Smartmontools</a>, this requires the installation of <a href="https://community.synology.com/enu/forum/17/post/15462">IPKG</a> and editing files that are overwritten during system updates. 
+The purpose of this script is to be able to operate using Synology DSM in its "stock" form and configuration. 
+
+This script along with the associated web-interface will allow for:
 
 #1.) Scheduling extended SMART tests either daily, weekly, monthly, 3-months, 6-months (short test scheduling not supported) 
 
 #2.) When scheduling tests, either allow for *all drives at once* (as DSM already does) or *one drive at a time* performed sequentially (one drive at a time reduces the system load)
 
-#3.) Manually trigger long SMART tests either on all drives or select drives
+#3.) Manually trigger long or short SMART tests either on all drives or select drives*
 
-#4.) Manually cancel active SMART tests on individually select-able drives
+#4.) Manually cancel active long or short SMART tests on individually select-able drives*
 
-#5.) See the historical logs of previous SMART tests executed using this script. This script will not gather logs from SMART tests performed using DSM in the past
+#5.) See the historical logs of previous extednded SMART tests executed using this script. This script will not gather logs from SMART tests performed using DSM in the past
 
-#6.) See the "live" status of SMART testing 
+#6.) See the "live" status of SMART testing.* 
+
+*NOTE: As this script must be executed to get updated "live" smart status, start or stop tests, the rate in which the "live" data is refreshed, or how quickly a SMART test is actually executed once a manual test is started or cancelled, depends on how often the script is executed in Task Scheduler. It is recommended to have the script execute every 15 minutes. As a result, it can take UP TO 15 minutes (in this example) before the script can respond to commands. 
 
 Example outputs of the script
 
@@ -186,7 +191,7 @@ from_email_address="email@email.com"
 ########################################################
 ```
 
-### Configuration of Synology Task Scheduler 
+### Configuration of Synology Task Scheduler (For Synology Systems)
 
 Once the script is on the NAS, go to Control Panel --> Task Scheduler
 
@@ -199,6 +204,17 @@ Go to the schedule tab, and at the bottom, change the "Frequency" to "every 15-m
 Go to the "Task Settings" tab. in the "user defined script" area at the bottom enter ```bash %PATH_TO_SCRIPT%/synology_SMART_control.sh``` for example. Ensure the path is the path to where the file was placed on the NAS. 
 
 Click OK. Enter your account password to confirm that the task will use root
+
+### Configuration of crontab (for Non-Synology Systems)
+
+Edit the crontab at /etc/crontab using ```vi /etc/crontab``` 
+	
+add the following line: 
+```	0,15,30,45 * * * *	root	%PATH_TO_SCRIPT%/synology_SMART_control.sh```
+
+This will execute the script at minute 0, 15, 30, and 45 of every hour, of every day. 
+
+details on crontab can be found here: https://man7.org/linux/man-pages/man5/crontab.5.html and here https://crontab.guru/
 
 
 ### Configuration "smart_scheduler_config.php"
