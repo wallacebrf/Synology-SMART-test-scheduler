@@ -55,7 +55,7 @@ fi
 
 #create a lock file in the configuration directory to prevent more than one instance of this script from executing  at once
 if ! mkdir $lock_file_location; then
-	echo "Failed to acquire lock.\n" >&2
+	echo -e "Failed to acquire lock.\n" >&2
 	exit 1
 fi
 trap 'rm -rf $lock_file_location' EXIT #remove the lockdir on exit
