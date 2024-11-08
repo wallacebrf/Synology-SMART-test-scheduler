@@ -71,7 +71,7 @@ function send_email(){
 #log_file_name=${4}
 #subject=${5}
 #mail_body=${6}
-#use_ssmtp (value =0) or use mail plus server (value =1) ${7}
+#use_ssmtp (value =0) or use mail plus server (value =1) or use_msmtp (value =2) ${7}
 
 	if [[ "${3}" == "" || "${4}" == "" || "${7}" == "" ]];then
 		echo "Incorrect data was passed to the \"send_email\" function, cannot send email"
@@ -121,6 +121,18 @@ function send_email(){
 									echo -e "\n\nWARNING -- An error occurred while sending email. The error was: $email_response\n\n" |& tee "${3}/${4}"
 								fi	
 							fi
+						elif [[ ${7} -eq 2 ]]; then #use "msmtp" command
+							if ! command -v msmtp &> /dev/null #verify the msmtp command is available 
+							then
+								echo "Cannot Send Email as command \"msmtp\" was not found"
+							else
+								local email_response=$(msmtp "${1}" < "${3}/${4}"  2>&1)
+								if [[ "$email_response" == "" ]]; then
+									echo -e "\nEmail Sent Successfully" |& tee -a "${3}/${4}"
+								else
+									echo -e "\n\nWARNING -- An error occurred while sending email. The error was: $email_response\n\n" |& tee "${3}/${4}"
+								fi	
+							fi
 						else 
 							echo "Incorrect parameters supplied, cannot send email" |& tee "${3}/${4}"
 						fi
@@ -153,7 +165,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		if [[ $enable_email_notifications -eq 1 ]]; then
 			send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - WARNING - the configuration file is incorrect or corrupted." "NAS_name - WARNING - the configuration file is incorrect or corrupted. It should have 8 parameters, it currently has ${#explode[@]} parameters." "$use_send_mail"
 		else
-			echo -e "now_date\n\NAS_name - WARNING - the configuration file is incorrect or corrupted. It should have 8 parameters, it currently has ${#explode[@]} parameters."
+			echo -e "$now_date\n\NAS_name - WARNING - the configuration file is incorrect or corrupted. It should have 8 parameters, it currently has ${#explode[@]} parameters."
 		fi
 		exit 1
 	fi	
@@ -395,9 +407,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				else
 					if [[ -z "$syno_check" ]]; then
 						#Not Synology
-						echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+						echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
 					else
-						echo -e "now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+						echo -e "$now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
 					fi
 				fi
 				sleep 1
@@ -515,9 +527,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							else
 								if [[ -z "$syno_check" ]]; then
 									#Not Synology
-									echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+									echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
 								else
-									echo -e "now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+									echo -e "$now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
 								fi
 							fi
 						fi
@@ -685,9 +697,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 								else
 									if [[ -z "$syno_check" ]]; then
 										#Not Synology
-										echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+										echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
 									else
-										echo -e "now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+										echo -e "$now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
 									fi
 								fi
 							fi
@@ -830,9 +842,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 								else
 									if [[ -z "$syno_check" ]]; then
 										#Not Synology
-										echo -e "now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+										echo -e "$now_date\n\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
 									else
-										echo -e "now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
+										echo -e "$now_date\n\nSynology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nExtended SMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}"
 									fi
 								fi
 							fi
@@ -871,6 +883,6 @@ else
 	if [[ $enable_email_notifications -eq 1 ]]; then
 		send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Warning, cannot perform SMART tests as config file is missing" "NAS_name - Warning, cannot perform SMART tests as config file is missing" "$use_send_mail"
 	else
-		echo -e "now_date\n\NAS_name - Warning, cannot perform SMART tests as config file is missing"
+		echo -e "$now_date\n\NAS_name - Warning, cannot perform SMART tests as config file is missing"
 	fi
 fi
