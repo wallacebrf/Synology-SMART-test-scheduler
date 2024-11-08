@@ -342,14 +342,14 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			fi
 		done
 		
+		
+		##################################################################################################################
+		#determine when the next scheduled test is expected to occur. 
+		##################################################################################################################
 		if ls "$temp_dir/manual_start"* 1> /dev/null 2>&1; then		#check to see if any drives have been manually started
 			echo -e "User manually executed SMART test is active, skipping the schedule for now until test is complete\n\n\n"
 			next_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)													#since manual tests are active, we want to hold off on performing scheduled tests, so purposefully add delay time to the time
 		else
-			
-			##################################################################################################################
-			#determine when the next scheduled test is expected to occur. 
-			##################################################################################################################
 			
 			if [ -r "$config_file_location/next_scan_time.txt" ]; then
 			#file is available and readable
@@ -384,6 +384,10 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		
 			disk_temp_file_name="$(echo "${disk_names[$xx]}" | cut -c 6-).txt"	#takes "/dev/sata1" and saves just "sata1" for example. only saving from the 6th character to the end of the line
 			
+			
+			##################################################################################################################
+			#First check if SMART is disabled on the current disk
+			##################################################################################################################
 			if [[ "${disk_smart_enabled_array[$xx]}" == 0 ]]; then
 				#SMART testing is not enabled, unable to continue
 				time_diff=$(( $current_time - $next_scan_time ))							#calculate if it is time to perform the next scan
@@ -444,7 +448,11 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				fi
 				
 			else
-				#SMART testing is enabled, continue with the disk
+				##################################################################################################################
+				#SMART testing is enabled on the current disk
+				##################################################################################################################
+			
+			
 			
 				##################################################################################################################
 				#process user commanded SMART test cancellation
@@ -490,7 +498,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				
 				
 				##################################################################################################################
-				#process user commanded SMART manual start
+				#process user commanded SMART manual start (extended/long or short tests)
 				##################################################################################################################
 				if [ -r "$temp_dir/start_short_$disk_temp_file_name" ] || [ -r "$temp_dir/start_long_$disk_temp_file_name" ]; then
 				
@@ -507,18 +515,26 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					fi
 					
 					if [[ ${disk_smart_status_array[$xx]} -eq 1 ]]; then
+						
+						#test is already active, nothing to do
+					
 						if [[ -z "$syno_check" ]]; then
 							#Not Synology
 							echo "Test already in progress on ${disk_names[$xx]}....."
 						else
 							echo "Test already in progress on Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]....."
 						fi
+						
+						#perform some temp file clean up
 						if [ -r "$temp_dir/start_long_$disk_temp_file_name" ]; then
 							rm "$temp_dir/start_long_$disk_temp_file_name"
 						elif [ -r "$temp_dir/start_short_$disk_temp_file_name" ]; then
 							rm "$temp_dir/start_short_$disk_temp_file_name"
 						fi
 					else
+					
+						#no test is active on the current disk
+						
 						date > "$temp_dir/manual_start_$disk_temp_file_name" #save a temp file so the script knows that a manual test was initiated
 						
 						#command the test to start
@@ -616,6 +632,8 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					time_diff=$(( $current_time - $next_scan_time ))							#calculate if it is time to perform the next scan
 					if [[ $time_diff -gt 0 ]]; then
 					
+						#time is up!, we need to start the next scheudled test
+					
 						#check to see if any scans are already active on a disk
 						if [[ ${disk_smart_status_array[$xx]} -eq 1 ]]; then
 							#yes a scan is active so we don't need to do anything
@@ -678,6 +696,10 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							fi
 						fi	
 					else
+					
+						#not yet time to start a scheduled test
+						
+						
 						if [[ -z "$syno_check" ]]; then
 							#Not Synology
 							echo "Not yet time to scan drive ${disk_names[$xx]}. Next scan scheduled for $(date -d @"$next_scan_time")"
@@ -709,6 +731,8 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				elif [[ $next_scan_type -eq 0 ]]; then 
 					time_diff=$(( $current_time - $next_scan_time ))
 					if [[ $time_diff -gt 0 ]]; then
+					
+						#times up, need to start next scheduled test
 
 						#initialize disk completion tracker so we know which drives have finished and which have not 
 						if [ -r "$temp_dir/individual_disk_testing_tracker.txt" ]; then
@@ -889,7 +913,10 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							fi			
 						fi			
 					else
-						#If tests were started manually , but have now finished, send email alert that the drive's test is complete and save status to the disk's history files
+					
+						#not yet time to start a scheduled test
+					
+						#If tests were manually started, but have now finished, send email alert that the drive's test is complete and save status to the disk's history files
 						if [[ ${disk_smart_status_array[$xx]} -eq 0 ]]; then
 							if [[ -r "$temp_dir/$disk_temp_file_name" ]]; then
 								
@@ -934,6 +961,8 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						else
 							echo "Not yet time to scan Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]. Next scan scheduled for $(date -d @"$next_scan_time")"
 						fi
+						
+						#if tests were manually started and are still running
 						if [[ ${disk_smart_status_array[$xx]} -eq 1 ]]; then
 							if [[ -z "$syno_check" ]]; then
 								#Not Synology
@@ -942,6 +971,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 								echo -e "Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting is already in progress.\nPercent complete: ${disk_smart_percent_array[$xx]}%\n\n#################################################################\n\n"
 							fi
 						else
+							#no tests running and not yet time to start scheduled test
 							if [[ -z "$syno_check" ]]; then
 								#Not Synology
 								echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nTesting not active. Test Result: ${disk_smart_pass_fail_array[$xx]}\n\n#################################################################\n\n"
