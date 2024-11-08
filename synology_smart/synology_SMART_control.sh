@@ -181,6 +181,22 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 	use_send_mail=${explode[7]}
 	
 	
+	#save scan_window to a dedicated file. If the user changes the scan window, the script needs to be able to compare the latest setting to the previous setting to force a recalculation of the date for the next scan
+	if [ -r "$config_file_location/scan_window_tracker.txt" ]; then
+		read -r old_next_scan_time_window < "$config_file_location/scan_window_tracker.txt"
+	
+		if [[ $old_next_scan_time_window != $next_scan_time_window ]]; then
+			#if the values do not match, then delete the current file containing the next scan window date/time so the script can re-create it down below with an update date/time
+			rm "$config_file_location/next_scan_time.txt"
+			echo "$next_scan_time_window" > "$config_file_location/scan_window_tracker.txt"
+			echo "User has changed the next scan time window, new date/time of next scan will be processed."
+		fi
+	else
+		#file does not exist, so save the current configuration
+		echo "$next_scan_time_window" > "$config_file_location/scan_window_tracker.txt"
+	fi
+	
+	
 ##################################################################################################################
 #Start actual script if the script is enabled in the web-interface
 ##################################################################################################################
