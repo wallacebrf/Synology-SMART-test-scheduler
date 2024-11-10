@@ -197,7 +197,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 	from_email_address=${explode[3]}
 	to_email_address=${explode[4]}
 	next_scan_type=${explode[5]} #1=all drives, 0 = one drive at a time
-	next_scan_type=0
+	#next_scan_type=0
 	NAS_name=${explode[6]}
 	use_send_mail=${explode[7]}
 	
