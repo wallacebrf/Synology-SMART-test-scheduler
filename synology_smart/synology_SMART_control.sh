@@ -344,9 +344,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			fi
 			
 			#save a configuration file so the script and web-interface know this is a Synology system or not
-#			if [ -r "$config_file_location/syno_model.txt" ] || [ -r "$config_file_location/not_syno_model.txt" ]; then
-#				echo ""
-#			else
+			if [[ ! -r "$config_file_location/syno_model.txt" ]] && [[ ! -r "$config_file_location/not_syno_model.txt" ]]; then
 				# Get NAS model
 				if [[ "$syno_check" ]]; then
 					model=$(cat /proc/sys/kernel/syno_hw_version)
@@ -355,7 +353,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					model=$(hostname)
 					echo "$model" > "$config_file_location/not_syno_model.txt"
 				fi
-#			fi
+			fi
 
 			#determine if a SMART test is active or not
 			if [[ $disk_smart_status == *"Self-test routine in progress..."* ]]; then 		#yes a test is active
@@ -801,9 +799,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						#times up, need to start next scheduled test
 
 						#initialize disk completion tracker so we know which drives have finished and which have not 
-						if [ -r "$temp_dir/individual_disk_testing_tracker.txt" ]; then
-							echo ""
-						else
+						if [[ ! -r "$temp_dir/individual_disk_testing_tracker.txt" ]]; then
 							echo -n "" > "$temp_dir/individual_disk_testing_tracker.txt"
 						fi
 						
@@ -887,9 +883,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							else
 								if [[ $tests_in_progress -eq 0 ]]; then
 									if [[ ${disk_smart_status_array[$xx]} -eq 1 ]]; then
-										if [ -r "$temp_dir/$disk_temp_file_name" ]; then
-											echo ""
-										else
+										if [[ ! -r "$temp_dir/$disk_temp_file_name" ]]; then
 											echo "$(date +'%Y-%m-%d')_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"
 										fi
 										
@@ -910,9 +904,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 										fi
 										
 										#we need to save when the next scan will occur in the future, but we do not want to overwrite the value currently saved, so we will saved a temp file with the future value which will be saved when all drives are done
-										if [ -r "$temp_dir/next_scan_time_temp.txt" ]; then
-											echo ""
-										else
+										if [[ ! -r "$temp_dir/next_scan_time_temp.txt" ]]; then
 											#need to update when the next test will occur since we have now started the current set of tests
 											if [[ $date_updated -eq 0 ]]; then																			#only want to save the updated date once within the loop
 												if [[ $next_scan_time_window -eq 1 ]]; then
