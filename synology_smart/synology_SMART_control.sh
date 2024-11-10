@@ -5,6 +5,7 @@
 #By Brian Wallace
 
 #Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
+#	--> Adder of USB support
 
 #This script is preemptively being made due to rumors that Synology will remove the ability to schedule SMART tests in DSM. this script along with the associated web-interface will allow for:
 
@@ -151,6 +152,7 @@ function send_email(){
 
 ##################################################################################################################
 #Flash drive check Function
+#By Dave Russell "007revad"
 ##################################################################################################################
 # shellcheck disable=SC2005 #don't complain about useless cat in this function
 function not_flash_drive(){
@@ -195,7 +197,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 	from_email_address=${explode[3]}
 	to_email_address=${explode[4]}
 	next_scan_type=${explode[5]} #1=all drives, 0 = one drive at a time
-	#next_scan_type=0
+	next_scan_type=0
 	NAS_name=${explode[6]}
 	use_send_mail=${explode[7]}
 	
@@ -261,7 +263,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		elif [[ ${#disk_list2_exploded[@]} -gt 0 ]]; then #if there are any /dev/sda named drives, loop through them
 			valid_array=("${disk_list2_exploded[@]}")
 		else
-			echo "No Valid SATA Disks Found, Skipping Script"
+			echo "No Valid SATA or USB Disks Found, Skipping Script"
 			valid_array=() #making empty array so we do not collect any data for SATA drives and try NVME drives next
 			exit 1
 		fi
@@ -321,7 +323,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			#extract disk capacity
 			disk_capacity_array+=("$(echo "$raw_data" | grep "User Capacity:")") 				#get just the line containing the serial number
 			
-			#extract disk capacity
+			#extract if SMART is enabled on the disk or not
 			disk_smart_enabled="$(echo "$raw_data" | grep "SMART support is: Enabled")" 				#get just the line containing the serial number
 			if [[ -z $disk_smart_enabled ]]; then
 				disk_smart_enabled_array+=(0)
@@ -341,6 +343,18 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				else
 					disk_unit_location_array+=("Expansion Unit $disk_unit_location")
 				fi
+			fi
+			
+			#set disk drive slot and location variable
+			if [[ "$syno_check" ]]; then
+				#is a Synology
+				if [[ $disk =~ "usb" ]]; then
+					disk_drive_slot=";Synology USB Port: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
+				else
+					disk_drive_slot=";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
+				fi
+			else
+				disk_drive_slot=""
 			fi
 			
 			#save a configuration file so the script and web-interface know this is a Synology system or not
@@ -369,18 +383,6 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					echo -n "$now" > "$log_dir/disk_scan_status.txt"
 				fi
 				
-				#set disk drive slot and location variable
-				if [[ "$syno_check" ]]; then
-					#is a Synology
-					if [[ $disk =~ "usb" ]]; then
-						disk_drive_slot=";Synology USB Port: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
-					else
-						disk_drive_slot=";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
-					fi
-				else
-					disk_drive_slot=""
-				fi
-				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_extended_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_extended_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 			else
 				#no active test is occurring on the drive
