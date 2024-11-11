@@ -82,7 +82,11 @@ This script along with the associated web-interface will allow for:
 
 *NOTE: As this script must be executed to get updated "live" smart status, start or stop tests, the rate in which the "live" data is refreshed, or how quickly a SMART test is actually executed once a manual test is started or cancelled, depends on how often the script is executed in Task Scheduler. It is recommended to have the script execute every 15 minutes. As a result, it can take UP TO 15 minutes (in this example) before the script can respond to commands. 
 
-Example outputs of the script
+
+### Example outputs of the script
+<details>
+
+<summary>Expand to see examples</summary>
 
 ### No Scheduled Tests 
 
@@ -132,6 +136,7 @@ Example outputs of the script
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/12.png" alt="Logo">
 
+</details>
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
