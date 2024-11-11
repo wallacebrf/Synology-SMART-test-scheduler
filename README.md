@@ -235,6 +235,9 @@ details on crontab can be found here: https://man7.org/linux/man-pages/man5/cron
 ### Disk Logging
 Every time a SMART test is performed by the script, either manually or through a schedule, it will save the following information to a file. The log files are displayed in the web-interface for easy access. 
 
+<details>
+
+<summary>Expand to see Results of Disk Logging</summary>
 ```
 Synology Drive Slot: 2 [Main Unit]
 Disk: /dev/sata3
@@ -362,7 +365,7 @@ Selective self-test flags (0x0):
   After scanning selected spans, do NOT read-scan remainder of disk.
 If Selective self-test is pending on power-up, resume after 0 minute delay.
 ```
-
+</details>
 
 ### Configuration "smart_scheduler_config.php"
 
