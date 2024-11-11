@@ -1,7 +1,7 @@
 #!/bin/bash
 # shellcheck disable=SC2129,SC2155,SC2004,SC2034,SC2207,SC2001
 
-#version 1.3 dated 11/11/2024
+#version 1.4 dated 11/12/2024
 #By Brian Wallace
 
 #Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
@@ -169,6 +169,19 @@ function not_flash_drive(){
 	fi
 }
 
+##################################################################################################################
+#USB drive check Function
+#By Dave Russell "007revad"
+##################################################################################################################
+function is_usb(){
+    # $1 is /dev/sda etc
+    if realpath /sys/block/"$(basename "$1")" | grep -q usb; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 
 ##################################################################################################################
 #Read in configuration file and skip script execution  if the file is missing or corrupted 
@@ -237,22 +250,22 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 
 		IFS=$'\n' read -rd '' -a disk_list1_exploded <<<"$disk_list1"	#create an array of the dev/sata results if they exist
 
-		IFS=$'\n' read -rd '' -a disk_list2_exploded <<<"$disk_list2"	#create an array of the dev/sda results if they exist
+		IFS=$'\n' read -rd '' -a tmp_disk_list2_exploded <<<"$disk_list2"	#create an array of the dev/sda results if they exist
 
 		IFS=$'\n' read -rd '' -a disk_list3_exploded <<<"$disk_list3"	#create an array of the dev/usb results if they exist
 
 
 		#add usb drives to disk_list1_exploded or disk_list2_exploded
-		if [[ ${#disk_list1_exploded[@]} -gt "0" ]]; then
+		if [[ ${#disk_list1_exploded[@]} -gt "0" ]]; then		#/dev/sata* and /dev/sas*
 			for usb_disk in "${disk_list3_exploded[@]}"; do
-				if not_flash_drive "$usb_disk"; then
+				if not_flash_drive "$usb_disk"; then			#skip flash drives
 					disk_list1_exploded+=("$usb_disk")
 				fi
 			done
-		elif [[ ${#disk_list2_exploded[@]} -gt "0" ]]; then
-			for usb_disk in "${disk_list3_exploded[@]}"; do
-				if not_flash_drive "$usb_disk"; then
-					disk_list2_exploded+=("$usb_disk")
+		elif [[ ${#tmp_disk_list2_exploded[@]} -gt "0" ]]; then		#/dev/sd* and /dev/hd*
+			for tmp_disk in "${tmp_disk_list2_exploded[@]}"; do
+				if not_flash_drive "$tmp_disk"; then				#skip flash drives
+					disk_list2_exploded+=("$tmp_disk")
 				fi
 			done
 		fi
@@ -348,8 +361,10 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			#set disk drive slot and location variable
 			if [[ "$syno_check" ]]; then
 				#is a Synology
-				if [[ $disk =~ "usb" ]]; then
-					disk_drive_slot=";Synology USB Port: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
+				if [[ $disk =~ "usb" ]] || is_usb "$disk"; then
+					#get usb_name as USB Disk 1 or USB Disk 2 etc (works in DSM 6 and 7)
+					usb_name="$(synousbdisk -info "$(basename "$disk")" | grep -E '^Name:' | cut -d" " -f2-)"
+					disk_drive_slot="Synology $usb_name"
 				else
 					disk_drive_slot=";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
 				fi
@@ -438,12 +453,19 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		for xx in "${!valid_array[@]}"; do
 		
 			disk_temp_file_name="$(echo "${disk_names[$xx]}" | cut -c 6-).txt"	#takes "/dev/sata1" and saves just "sata1" for example. only saving from the 6th character to the end of the line
-				
+			
+			#extract just the "/dev/sata1" or just the "/dev/sda" parts of the results, get rid of everything else
+			disk="${valid_array[$xx]}"
+			disk="${disk##*Disk }" 		#get rid of "Disk " at the beginning of the string
+			disk="${disk%:*}" 			#get rid of everything after the first colon which is after the name of the disk such as "/dev/sata1:"
+			
 			#set disk drive slot and location variable
 			if [[ "$syno_check" ]]; then
 				#is a Synology
-				if [[ ${disk_names[$xx]} =~ usb ]]; then
-					disk_drive_slot="Synology USB Port: ${disk_drive_slot_array[$xx]}"
+				if [[ ${disk_names[$xx]} =~ usb ]] || is_usb "$disk"; then
+					#get usb_name as USB Disk 1 or USB Disk 2 etc (works in DSM 6 and 7)
+					usb_name="$(synousbdisk -info "$(basename "$disk")" | grep -E '^Name:' | cut -d" " -f2-)"
+					disk_drive_slot="Synology $usb_name"
 				else
 					disk_drive_slot="Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
 				fi
