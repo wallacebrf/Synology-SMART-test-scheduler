@@ -1,10 +1,11 @@
 #!/bin/bash
 # shellcheck disable=SC2129,SC2155,SC2004,SC2034,SC2207,SC2001
 
-#version 1.3 dated 11/11/2024
+#version 1.4 dated 11/12/2024
 #By Brian Wallace
 
 #Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
+#	--> Adder of USB support
 
 #This script is preemptively being made due to rumors that Synology will remove the ability to schedule SMART tests in DSM. this script along with the associated web-interface will allow for:
 
@@ -151,6 +152,7 @@ function send_email(){
 
 ##################################################################################################################
 #Flash drive check Function
+#By Dave Russell "007revad"
 ##################################################################################################################
 # shellcheck disable=SC2005 #don't complain about useless cat in this function
 function not_flash_drive(){
@@ -165,6 +167,19 @@ function not_flash_drive(){
 	if [[ $removable == "1" ]] && [[ $capability == "51" ]]; then
 		return 1
 	fi
+}
+
+##################################################################################################################
+#USB drive check Function
+#By Dave Russell "007revad"
+##################################################################################################################
+function is_usb(){
+    # $1 is /dev/sda etc
+    if realpath /sys/block/"$(basename "$1")" | grep -q usb; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 
@@ -235,22 +250,22 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 
 		IFS=$'\n' read -rd '' -a disk_list1_exploded <<<"$disk_list1"	#create an array of the dev/sata results if they exist
 
-		IFS=$'\n' read -rd '' -a disk_list2_exploded <<<"$disk_list2"	#create an array of the dev/sda results if they exist
+		IFS=$'\n' read -rd '' -a tmp_disk_list2_exploded <<<"$disk_list2"	#create an array of the dev/sda results if they exist
 
 		IFS=$'\n' read -rd '' -a disk_list3_exploded <<<"$disk_list3"	#create an array of the dev/usb results if they exist
 
 
 		#add usb drives to disk_list1_exploded or disk_list2_exploded
-		if [[ ${#disk_list1_exploded[@]} -gt "0" ]]; then
+		if [[ ${#disk_list1_exploded[@]} -gt "0" ]]; then		#/dev/sata* and /dev/sas*
 			for usb_disk in "${disk_list3_exploded[@]}"; do
-				if not_flash_drive "$usb_disk"; then
+				if not_flash_drive "$usb_disk"; then			#skip flash drives
 					disk_list1_exploded+=("$usb_disk")
 				fi
 			done
-		elif [[ ${#disk_list2_exploded[@]} -gt "0" ]]; then
-			for usb_disk in "${disk_list3_exploded[@]}"; do
-				if not_flash_drive "$usb_disk"; then
-					disk_list2_exploded+=("$usb_disk")
+		elif [[ ${#tmp_disk_list2_exploded[@]} -gt "0" ]]; then		#/dev/sd* and /dev/hd*
+			for tmp_disk in "${tmp_disk_list2_exploded[@]}"; do
+				if not_flash_drive "$tmp_disk"; then				#skip flash drives
+					disk_list2_exploded+=("$tmp_disk")
 				fi
 			done
 		fi
@@ -261,7 +276,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		elif [[ ${#disk_list2_exploded[@]} -gt 0 ]]; then #if there are any /dev/sda named drives, loop through them
 			valid_array=("${disk_list2_exploded[@]}")
 		else
-			echo "No Valid SATA Disks Found, Skipping Script"
+			echo "No Valid SATA or USB Disks Found, Skipping Script"
 			valid_array=() #making empty array so we do not collect any data for SATA drives and try NVME drives next
 			exit 1
 		fi
@@ -321,7 +336,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			#extract disk capacity
 			disk_capacity_array+=("$(echo "$raw_data" | grep "User Capacity:")") 				#get just the line containing the serial number
 			
-			#extract disk capacity
+			#extract if SMART is enabled on the disk or not
 			disk_smart_enabled="$(echo "$raw_data" | grep "SMART support is: Enabled")" 				#get just the line containing the serial number
 			if [[ -z $disk_smart_enabled ]]; then
 				disk_smart_enabled_array+=(0)
@@ -341,6 +356,20 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				else
 					disk_unit_location_array+=("Expansion Unit $disk_unit_location")
 				fi
+			fi
+			
+			#set disk drive slot and location variable
+			if [[ "$syno_check" ]]; then
+				#is a Synology
+				if [[ $disk =~ "usb" ]] || is_usb "$disk"; then
+					#get usb_name as USB Disk 1 or USB Disk 2 etc (works in DSM 6 and 7)
+					usb_name="$(synousbdisk -info "$(basename "$disk")" | grep -E '^Name:' | cut -d" " -f2-)"
+					disk_drive_slot="Synology $usb_name"
+				else
+					disk_drive_slot=";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
+				fi
+			else
+				disk_drive_slot=""
 			fi
 			
 			#save a configuration file so the script and web-interface know this is a Synology system or not
@@ -369,18 +398,6 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					echo -n "$now" > "$log_dir/disk_scan_status.txt"
 				fi
 				
-				#set disk drive slot and location variable
-				if [[ "$syno_check" ]]; then
-					#is a Synology
-					if [[ $disk =~ "usb" ]]; then
-						disk_drive_slot=";Synology USB Port: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
-					else
-						disk_drive_slot=";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
-					fi
-				else
-					disk_drive_slot=""
-				fi
-				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_extended_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_extended_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 			else
 				#no active test is occurring on the drive
@@ -436,12 +453,19 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		for xx in "${!valid_array[@]}"; do
 		
 			disk_temp_file_name="$(echo "${disk_names[$xx]}" | cut -c 6-).txt"	#takes "/dev/sata1" and saves just "sata1" for example. only saving from the 6th character to the end of the line
-				
+			
+			#extract just the "/dev/sata1" or just the "/dev/sda" parts of the results, get rid of everything else
+			disk="${valid_array[$xx]}"
+			disk="${disk##*Disk }" 		#get rid of "Disk " at the beginning of the string
+			disk="${disk%:*}" 			#get rid of everything after the first colon which is after the name of the disk such as "/dev/sata1:"
+			
 			#set disk drive slot and location variable
 			if [[ "$syno_check" ]]; then
 				#is a Synology
-				if [[ ${disk_names[$xx]} =~ usb ]]; then
-					disk_drive_slot="Synology USB Port: ${disk_drive_slot_array[$xx]}"
+				if [[ ${disk_names[$xx]} =~ usb ]] || is_usb "$disk"; then
+					#get usb_name as USB Disk 1 or USB Disk 2 etc (works in DSM 6 and 7)
+					usb_name="$(synousbdisk -info "$(basename "$disk")" | grep -E '^Name:' | cut -d" " -f2-)"
+					disk_drive_slot="Synology $usb_name"
 				else
 					disk_drive_slot="Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
 				fi
