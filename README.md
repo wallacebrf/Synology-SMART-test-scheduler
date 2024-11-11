@@ -340,8 +340,10 @@ Ensure that the path ```script_location="/volume1/web/synology_smart"``` matches
 
 Edit the email lines so if the script cannot load the configuration file it can still send an email warning notification. 
 
+### 6.2.) Automatic Scheduled Execution of Script every 10-15 minutes 
+There are two ways to ensure the script executes every 10-15 minutes. That would be using crontab (works on both Synology and non-Synology systems) or use Synology Task Scheduler (Synology Only)
 
-### 6.2.) Configuration of Synology Task Scheduler (For Synology Systems)
+### 6.2.1.) Configuration of Synology Task Scheduler (For Synology Systems)
 
 Once the script is on the NAS, go to Control Panel --> Task Scheduler
 
@@ -355,7 +357,7 @@ Go to the "Task Settings" tab. in the "user defined script" area at the bottom e
 
 Click OK. Enter your account password to confirm that the task will use root
 
-### 6.3.) Configuration of crontab (for Non-Synology Systems)
+### 6.2.2.) Configuration of crontab (for Non-Synology Systems)
 
 Edit the crontab at /etc/crontab using ```vi /etc/crontab``` 
 	
@@ -366,7 +368,7 @@ This will execute the script at minute 0, 15, 30, and 45 of every hour, of every
 
 details on crontab can be found here: https://man7.org/linux/man-pages/man5/crontab.5.html and here https://crontab.guru/
 
-### 6.4.) Configuration "smart_scheduler_config.php"
+### 6.3.) Configuration "smart_scheduler_config.php"
 
 TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
 TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
@@ -375,7 +377,7 @@ TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
 TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
 
 
-### 6.5.) Configuration of Synology web server "http" user permissions
+### 6.4.) Configuration of "http" user permissions (Synology Only)
 
 by default the Synology user "http" that web station uses does not have write permissions to the "web" file share. 
 
@@ -390,7 +392,7 @@ by default the Synology user "http" that web station uses does not have write pe
 <img src="https://raw.githubusercontent.com/wallacebrf/synology_snmp/main/Images/http_user2.png" alt="1314">
 <img src="https://raw.githubusercontent.com/wallacebrf/synology_snmp/main/Images/http_user3.png" alt="1314">
 
-### 6.6.) Configuration of msmtp email settings for Non-Synology systems
+### 6.5.) Configuration of msmtp email settings for Non-Synology systems
 
 In Linux the msmtprc file can be either:
 
@@ -430,7 +432,7 @@ tls_trust_file /usr/builtin/etc/msmtp/ca-certificates.crt
 
 Ensure the SMTP server is configured for the server of your choice, and ensure the ```account default``` email address is properly configured.
 
-### 6.7.) Configuration of required web-interface settings
+### 6.6.) Configuration of required web-interface settings
 
 
 1. Now that the files are where they need to be, using a browser go to the "smart_scheduler_config.php" page. When the page loads for the first time, it will automatically create a configuration file in the ```config``` directory if one does not already exist. the values will all be default values and must be configured. 
