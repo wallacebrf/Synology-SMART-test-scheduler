@@ -52,6 +52,41 @@ if [[ $( whoami ) != "root" ]]; then
 	exit 1
 fi
 
+
+#########################################################
+# Make sure all the needed directories are available 
+#########################################################
+if [[ ! -r "$log_dir" ]]; then
+	echo "Directory \"$log_dir\" was not present, directory created"
+	mkdir "$log_dir"
+	
+	if [[ ! -r "$log_dir" ]]; then
+		echo "Unable to create directory \"$log_dir\", exiting script"
+		exit 1
+	fi
+fi
+
+if [[ ! -r "$log_dir/history" ]]; then
+	mkdir "$log_dir/history"
+	echo "Directory \"$log_dir/history\" was not present, directory created"
+
+	if [[ ! -r "$log_dir/history" ]]; then
+		echo "Unable to create directory \"$log_dir/history\", exiting script"
+		exit 1
+	fi
+fi
+
+if [[ ! -r "$temp_dir" ]]; then
+	echo "Directory \"$temp_dir\" was not present, directory created"
+	mkdir "$temp_dir"
+	
+	if [[ ! -r "$temp_dir" ]]; then
+		echo "Unable to create directory \"$temp_dir\", exiting script"
+		exit 1
+	fi
+fi
+
+
 ######################################################################################
 
 #create a lock file in the configuration directory to prevent more than one instance of this script from executing  at once
@@ -181,7 +216,6 @@ function is_usb(){
         return 1
     fi
 }
-
 
 ##################################################################################################################
 #Read in configuration file and skip script execution  if the file is missing or corrupted 
@@ -458,7 +492,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			disk="${valid_array[$xx]}"
 			disk="${disk##*Disk }" 		#get rid of "Disk " at the beginning of the string
 			disk="${disk%:*}" 			#get rid of everything after the first colon which is after the name of the disk such as "/dev/sata1:"
-			
+				
 			#set disk drive slot and location variable
 			if [[ "$syno_check" ]]; then
 				#is a Synology
@@ -466,6 +500,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					#get usb_name as USB Disk 1 or USB Disk 2 etc (works in DSM 6 and 7)
 					usb_name="$(synousbdisk -info "$(basename "$disk")" | grep -E '^Name:' | cut -d" " -f2-)"
 					disk_drive_slot="Synology $usb_name"
+																	   
 				else
 					disk_drive_slot="Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
 				fi
@@ -639,7 +674,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						disk_cancelation_array[$xx]=0
 								
 						#save temp file so we know the particular drive test was started
-						echo "$(date +'%Y-%m-%d')_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
+						echo "$(date +'%Y-%m-%d')_${disk_smart_serial_array[$xx]}_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
 						echo -e "\n\n#################################################################\n\n"
 								
 						#send email notification that the test was started
@@ -660,7 +695,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						fi
 						
 						#create new history log file
-						echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"		
+						echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_${disk_smart_serial_array[$xx]}_$disk_temp_file_name"		
 					fi
 					sleep 1
 				fi
@@ -739,7 +774,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							smartctl -d sat -a -t long "${disk_names[$xx]}" 2>/dev/null
 							
 							#save temp file so we know the particular drive test was started
-							echo "$(date +'%Y-%m-%d')_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
+							echo "$(date +'%Y-%m-%d')_${disk_smart_serial_array[$xx]}_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
 							echo -e "\n\n#################################################################\n\n"
 							
 							#send email notification that the test was started
@@ -761,9 +796,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							#create new history log file
 							if [[ -z "$syno_check" ]]; then
 								#Not Synology
-								echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"
+								echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_${disk_smart_serial_array[$xx]}_$disk_temp_file_name"
 							else
-								echo -e "${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"
+								echo -e "${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_${disk_smart_serial_array[$xx]}_$disk_temp_file_name"
 							fi
 							
 							#need to update when the next test will occur since we have now started the current set of tests
@@ -908,7 +943,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 								if [[ $tests_in_progress -eq 0 ]]; then
 									if [[ ${disk_smart_status_array[$xx]} -eq 1 ]]; then
 										if [[ ! -r "$temp_dir/$disk_temp_file_name" ]]; then
-											echo "$(date +'%Y-%m-%d')_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"
+											echo "$(date +'%Y-%m-%d')_${disk_smart_serial_array[$xx]}_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"
 										fi
 										
 										tests_in_progress=1
@@ -954,7 +989,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 										tests_in_progress=1
 										
 										#save temp file so we know the particular drive test was started
-										echo "$(date +'%Y-%m-%d')_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
+										echo "$(date +'%Y-%m-%d')_${disk_smart_serial_array[$xx]}_$disk_temp_file_name" > "$temp_dir/$disk_temp_file_name"				#save temp file so we know we started a test for the particular drive. this is used to know if we need to send an email when the test finishes. the contents are the name of the log file so when testing finishes we know what file to update
 										echo -e "\n\n#################################################################\n\n"
 										
 										#send email notification that the test was started
@@ -977,9 +1012,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 										#create new history log file
 										if [[ -z "$syno_check" ]]; then
 											#Not Synology
-											echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"
+											echo -e "Disk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_${disk_smart_serial_array[$xx]}_$disk_temp_file_name"
 										else
-											echo -e "${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_$disk_temp_file_name"
+											echo -e "${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\nTest Started: $(date +'%d/%m/%Y %H:%M:%S:%3N')" > "$log_dir/history/$(date +'%Y-%m-%d')_${disk_smart_serial_array[$xx]}_$disk_temp_file_name"
 										fi
 									fi	
 								else
