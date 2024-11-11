@@ -57,7 +57,7 @@ Scheduler of Synology SMART tests
 
 
 <!-- ABOUT THE PROJECT -->
-### About_the_project_Details
+### 1.) About the project Details
 
 It is <a href="https://www.reddit.com/r/synology/comments/1gh7x45/synology_is_going_to_deprecate_smart_task/">rumored</a> that Synology may be removing the ability to schedule SMART tests in the DSM GUI. 
 
@@ -83,161 +83,69 @@ This script along with the associated web-interface will allow for:
 *NOTE: As this script must be executed to get updated "live" smart status, start or stop tests, the rate in which the "live" data is refreshed, or how quickly a SMART test is actually executed once a manual test is started or cancelled, depends on how often the script is executed in Task Scheduler. It is recommended to have the script execute every 15 minutes. As a result, it can take UP TO 15 minutes (in this example) before the script can respond to commands. 
 
 
-### Example outputs of the script
+### 2.) Example outputs of the script
 <details>
 
 <summary>Expand to see examples</summary>
 
-### No Scheduled Tests 
+### 2.1.) No Scheduled Tests 
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/1.png" alt="Logo">
 
-### All drives concurrently
+### 2.2.) All drives concurrently
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/2.png" alt="Logo">
 
-### Drives testing individually, disk 1 of 3 scanning, other two drives waiting
+### 2.3.) Drives testing individually, disk 1 of 3 scanning, other two drives waiting
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/3.png" alt="Logo">
 
-### drives testing individually, disk 2 of 3 scanning, the first marked complete and the third drive waiting 
+### 2.4.)  testing individually, disk 2 of 3 scanning, the first marked complete and the third drive waiting 
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/4.png" alt="Logo">
 
-### drives testing individually, disk 3 of 3 scanning, the first and 2nd marked complete
+### 2.5.) drives testing individually, disk 3 of 3 scanning, the first and 2nd marked complete
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/5.png" alt="Logo">
 
-### email of a disk starting testing
+### 2.6.) email of a disk starting testing
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/6.png" alt="Logo">
 
-### email of a disk finishing testing 
+### 2.7.) email of a disk finishing testing 
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/7.png" alt="Logo">
 
-### disk test manually canceled by the user
+### 2.8.) disk test manually canceled by the user
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/8.png" alt="Logo">
 
-### manual test running
+### 2.9.) manual test running
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/9.png" alt="Logo">
 
-### disk test manually started by the user
+### 2.10.) disk test manually started by the user
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/10.png" alt="Logo">
 
-### Synology System with disks in the main DS920 unit and disks inside a DX517 expansion unit
+### 2.11.) Synology System with disks in the main DS920 unit and disks inside a DX517 expansion unit
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/11.png" alt="Logo">
 
-### USB drive (on a Synology DS920) started manually by user
+### 2.12.) USB drive (on a Synology DS920) started manually by user
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/12.png" alt="Logo">
 
 </details>
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-
-
-<!-- GETTING STARTED -->
-## Getting Started
-
-This project is written around a Synology NAS, however it should work with any linux based system with ```smartctl``` installed and a working PHP powered web-server. It has been verified to work Asustor NAS units. The script supports three mail programs, ```sendmail``` used by Synology MailPlus Server, ```snmp``` which Synology uses but is not maintained any longer, and ```msmtp```. If a linux system uses something other than these three programs, email notifications will not work. 
-
-### Prerequisites
-
-For email notifications:
-
-This project requires EITHER Synology Mail Plus Server to be installed and running
-
-OR
-
-This project requires that Synology's ```Control Panel --> Notifications``` SMTP server settings are properly configured.
-
-OR
-
-for non-Synology systems, use ```msmtp```. This read-me will lightly touch on configuration of ```msmtp``` however these instructions may not apply to all linux systems.  
-
-The user can choose which email notification service is preferred. It is recommended to use the Synology control panel SMTP notification option (if using Synology) as it does not require additional packages to be installed. However if Synology Mail Plus Server is already installed and running, it is recommended to use it as it sends emails faster, supports message queues and provides logs/history of messages sent. 
-
-### Installation
-
-Download the zip file ```synology_smart.zip``` as that already contains the required files, and folder structure. 
-
-If that is not desired, manually create the following directories starting in the root of your web server. 
-
-```
-1.) /path_to_server_root/synology_smart
-
-2.) /path_to_server_root/synology_smart/config
-
-3.) /path_to_server_root/synology_smart/log
-
-4.) /path_to_server_root/synology_smart/log/history
-
-5.) /path_to_server_root/synology_smart/temp
-```
-
-
-The ```synology_SMART_control.sh``` script file must be downloaded and placed in the ```/path_to_server_root/synology_smart``` directory. 
-
-### Configuration "synology_SMART_control.sh"
-
-The script has the following configuration parameters. 
-
-```
-#########################################################
-# User Variables
-#########################################################
-#suggest to install the script in Synology web directory on volume1 at /volume1/web
-#if a different directory is desired, change variable "script_location" accordingly
-script_location="/volume1/web/synology_smart"
-
-#EMAIL SETTINGS USED IF CONFIGURATION FILE IS UNAVAILABLE
-#These variables will be overwritten with new corrected data if the configuration file loads properly. 
-email_address="email@email.com"
-from_email_address="email@email.com"
-#########################################################
-```
-
-Ensure that the path ```script_location="/volume1/web/synology_smart"``` matches where your NAS web server software has its root directory configured. This setup guide does not detail how to install and configure a working PHP web-server on Synology or non-Synology systems. 
-
-Edit the email lines so if the script cannot load the configuration file it can still send an email warning notification. 
-
-
-### Configuration of Synology Task Scheduler (For Synology Systems)
-
-Once the script is on the NAS, go to Control Panel --> Task Scheduler
-
-Click on Create --> Scheduled Task --> User-defined_script
-
-In the new window, name the script something useful like "Smart Schedule" and set user to root
-
-Go to the schedule tab, and at the bottom, change the "Frequency" to "every 15-minutes" and change the "first time run" to "00:00" and "last time run" to "23:45". 
-
-Go to the "Task Settings" tab. in the "user defined script" area at the bottom enter ```bash %PATH_TO_SCRIPT%/synology_SMART_control.sh``` for example. Ensure the path is the path to where the file was placed on the NAS. 
-
-Click OK. Enter your account password to confirm that the task will use root
-
-### Configuration of crontab (for Non-Synology Systems)
-
-Edit the crontab at /etc/crontab using ```vi /etc/crontab``` 
-	
-add the following line: 
-```	0,15,30,45 * * * *	root	%PATH_TO_SCRIPT%/synology_SMART_control.sh```
-
-This will execute the script at minute 0, 15, 30, and 45 of every hour, of every day. 
-
-details on crontab can be found here: https://man7.org/linux/man-pages/man5/crontab.5.html and here https://crontab.guru/
-
-### Disk Logging
+### 3.) Disk Logging
 Every time a SMART test is performed by the script, either manually or through a schedule, it will save the following information to a file. The log files are displayed in the web-interface for easy access. 
 
 <details>
 
 <summary>Expand to see Results of Disk Logging</summary>
+
 ```
 Synology Drive Slot: 2 [Main Unit]
 Disk: /dev/sata3
@@ -367,7 +275,98 @@ If Selective self-test is pending on power-up, resume after 0 minute delay.
 ```
 </details>
 
-### Configuration "smart_scheduler_config.php"
+<!-- GETTING STARTED -->
+## 4.) Getting Started
+
+This project is written around a Synology NAS, however it should work with any linux based system with ```smartctl``` installed and a working PHP powered web-server. It has been verified to work Asustor NAS units. The script supports three mail programs, ```sendmail``` used by Synology MailPlus Server, ```snmp``` which Synology uses but is not maintained any longer, and ```msmtp```. If a linux system uses something other than these three programs, email notifications will not work. 
+
+### 5.) Prerequisites
+
+For email notifications:
+
+This project requires EITHER Synology Mail Plus Server to be installed and running
+
+OR
+
+This project requires that Synology's ```Control Panel --> Notifications``` SMTP server settings are properly configured.
+
+OR
+
+for non-Synology systems, use ```msmtp```. This read-me will lightly touch on configuration of ```msmtp``` however these instructions may not apply to all linux systems.  
+
+The user can choose which email notification service is preferred. It is recommended to use the Synology control panel SMTP notification option (if using Synology) as it does not require additional packages to be installed. However if Synology Mail Plus Server is already installed and running, it is recommended to use it as it sends emails faster, supports message queues and provides logs/history of messages sent. 
+
+### 6.) Installation
+
+Download the zip file ```synology_smart.zip``` as that already contains the required files, and folder structure. 
+
+If that is not desired, manually create the following directories starting in the root of your web server. 
+
+```
+1.) /path_to_server_root/synology_smart
+
+2.) /path_to_server_root/synology_smart/config
+
+3.) /path_to_server_root/synology_smart/log
+
+4.) /path_to_server_root/synology_smart/log/history
+
+5.) /path_to_server_root/synology_smart/temp
+```
+
+
+The ```synology_SMART_control.sh``` script file must be downloaded and placed in the ```/path_to_server_root/synology_smart``` directory. 
+
+### 6.1.) Configuration "synology_SMART_control.sh"
+
+The script has the following configuration parameters. 
+
+```
+#########################################################
+# User Variables
+#########################################################
+#suggest to install the script in Synology web directory on volume1 at /volume1/web
+#if a different directory is desired, change variable "script_location" accordingly
+script_location="/volume1/web/synology_smart"
+
+#EMAIL SETTINGS USED IF CONFIGURATION FILE IS UNAVAILABLE
+#These variables will be overwritten with new corrected data if the configuration file loads properly. 
+email_address="email@email.com"
+from_email_address="email@email.com"
+#########################################################
+```
+
+Ensure that the path ```script_location="/volume1/web/synology_smart"``` matches where your NAS web server software has its root directory configured. This setup guide does not detail how to install and configure a working PHP web-server on Synology or non-Synology systems. 
+
+Edit the email lines so if the script cannot load the configuration file it can still send an email warning notification. 
+
+
+### 6.2.) Configuration of Synology Task Scheduler (For Synology Systems)
+
+Once the script is on the NAS, go to Control Panel --> Task Scheduler
+
+Click on Create --> Scheduled Task --> User-defined_script
+
+In the new window, name the script something useful like "Smart Schedule" and set user to root
+
+Go to the schedule tab, and at the bottom, change the "Frequency" to "every 15-minutes" and change the "first time run" to "00:00" and "last time run" to "23:45". 
+
+Go to the "Task Settings" tab. in the "user defined script" area at the bottom enter ```bash %PATH_TO_SCRIPT%/synology_SMART_control.sh``` for example. Ensure the path is the path to where the file was placed on the NAS. 
+
+Click OK. Enter your account password to confirm that the task will use root
+
+### 6.3.) Configuration of crontab (for Non-Synology Systems)
+
+Edit the crontab at /etc/crontab using ```vi /etc/crontab``` 
+	
+add the following line: 
+```	0,15,30,45 * * * *	root	%PATH_TO_SCRIPT%/synology_SMART_control.sh```
+
+This will execute the script at minute 0, 15, 30, and 45 of every hour, of every day. 
+
+details on crontab can be found here: https://man7.org/linux/man-pages/man5/crontab.5.html and here https://crontab.guru/
+
+### 6.4.) Configuration "smart_scheduler_config.php"
 
 TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
 TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
@@ -376,7 +375,7 @@ TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
 TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
 
 
-### Configuration of Synology web server "http" user permissions
+### 6.5.) Configuration of Synology web server "http" user permissions
 
 by default the Synology user "http" that web station uses does not have write permissions to the "web" file share. 
 
@@ -391,7 +390,7 @@ by default the Synology user "http" that web station uses does not have write pe
 <img src="https://raw.githubusercontent.com/wallacebrf/synology_snmp/main/Images/http_user2.png" alt="1314">
 <img src="https://raw.githubusercontent.com/wallacebrf/synology_snmp/main/Images/http_user3.png" alt="1314">
 
-### Configuration of msmtp email settings for Non-Synology systems
+### 6.6.) Configuration of msmtp email settings for Non-Synology systems
 
 In Linux the msmtprc file can be either:
 
@@ -431,7 +430,7 @@ tls_trust_file /usr/builtin/etc/msmtp/ca-certificates.crt
 
 Ensure the SMTP server is configured for the server of your choice, and ensure the ```account default``` email address is properly configured.
 
-### Configuration of required web-interface settings
+### 6.7.) Configuration of required web-interface settings
 
 
 1. Now that the files are where they need to be, using a browser go to the "smart_scheduler_config.php" page. When the page loads for the first time, it will automatically create a configuration file in the ```config``` directory if one does not already exist. the values will all be default values and must be configured. 
@@ -451,7 +450,7 @@ Ensure the SMTP server is configured for the server of your choice, and ensure t
 8. Chose to use either Synology Mail Plus Server (if it is installed and available) or use the integrated Synology SNMP notifications settings found under ```Control Panel --> Notifications```
 
 <!-- CONTRIBUTING -->
-## Contributing
+## 7.) Contributing
 
 Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
 
@@ -465,7 +464,7 @@ Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
 
 
 <!-- LICENSE -->
-## License
+## 8.) License
 
 This is free to use code, use as you wish
 
@@ -474,7 +473,7 @@ This is free to use code, use as you wish
 
 
 <!-- CONTACT -->
-## Contact
+## 9.) Contact
 
 Your Name - Brian Wallace - wallacebrf@hotmail.com
 
@@ -485,7 +484,7 @@ Project Link: [https://github.com/wallacebrf/Synology-SMART-test-scheduler)
 
 
 <!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
+## 10.) Acknowledgments
 
 https://github.com/007revad 	For the code to determine the drive number of a Synology disk
 
