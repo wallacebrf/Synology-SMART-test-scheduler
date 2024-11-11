@@ -64,6 +64,8 @@ It is <a href="https://www.reddit.com/r/synology/comments/1gh7x45/synology_is_go
 This script has been preemptively made to cover this possibility. While automated scheduling of SMART tests is already possible with <a href="https://help.ubuntu.com/community/Smartmontools">Smartmontools</a>, this requires the installation of <a href="https://community.synology.com/enu/forum/17/post/15462">IPKG</a> and editing files that are overwritten during system updates. 
 The purpose of this script is to be able to operate using Synology DSM in its "stock" form and configuration. 
 
+This script support SATA, USB, and SAS drives. For USB drives, they are supported even if not visible inside Synology DSM's Storage Manager. 
+
 This script along with the associated web-interface will allow for:
 
 #1.) Scheduling extended SMART tests either daily, weekly, monthly, 3-months, 6-months (short test scheduling not supported) 
@@ -74,7 +76,7 @@ This script along with the associated web-interface will allow for:
 
 #4.) Manually cancel active long or short SMART tests on individually select-able drives*
 
-#5.) See the historical logs of previous extednded SMART tests executed using this script. This script will not gather logs from SMART tests performed using DSM in the past
+#5.) See the historical logs of previous extended SMART tests executed using this script. This script will not gather logs from SMART tests performed using DSM in the past
 
 #6.) See the "live" status of SMART testing.* 
 
@@ -122,6 +124,14 @@ Example outputs of the script
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/10.png" alt="Logo">
 
+### Synology System with disks in the main DS920 unit and disks inside a DX517 expansion unit
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/11.png" alt="Logo">
+
+### USB drive (on a Synology DS920) started manually by user
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/12.png" alt="Logo">
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
@@ -129,7 +139,7 @@ Example outputs of the script
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This project is written around a Synology NAS, however it should work with any linux based system with ```smartctl``` installed and a working PHP powered web-server 
+This project is written around a Synology NAS, however it should work with any linux based system with ```smartctl``` installed and a working PHP powered web-server. It has been verified to work Asustor NAS units. The script supports three mail programs, ```sendmail``` used by Synology MailPlus Server, ```snmp``` which Synology uses but is not maintained any longer, and ```msmtp```. If a linux system uses something other than these three programs, email notifications will not work. 
 
 ### Prerequisites
 
@@ -139,9 +149,13 @@ This project requires EITHER Synology Mail Plus Server to be installed and runni
 
 OR
 
-This project requires that Synology's ```Control Panel --> Notifications``` SMTP server settings are properly configured. 
+This project requires that Synology's ```Control Panel --> Notifications``` SMTP server settings are properly configured.
 
-The user can choose which email notification service is preferred. It is recommended to use the Synology control panel SMTP notification option as it does not require additional packages to be installed. However if Synology Mail Plus Server is already installed and running, it is recommended to use it as it sends emails faster, supports message queues and provides logs/history of messages sent. 
+OR
+
+for non-Synology systems, use ```msmtp```. This read-me will lightly touch on configuration of ```msmtp``` however these instructions may not apply to all linux systems.  
+
+The user can choose which email notification service is preferred. It is recommended to use the Synology control panel SMTP notification option (if using Synology) as it does not require additional packages to be installed. However if Synology Mail Plus Server is already installed and running, it is recommended to use it as it sends emails faster, supports message queues and provides logs/history of messages sent. 
 
 ### Installation
 
@@ -166,28 +180,27 @@ The ```synology_SMART_control.sh``` script file must be downloaded and placed in
 
 ### Configuration "synology_SMART_control.sh"
 
-The script has the following configuration parameters, the only part of the parameters that should be edited is the path to the web server's root folder. 
-
-```
-config_file_location="/volume1/web/synology_smart/config"
-config_file_name="smart_control_config.txt"
-log_dir="/volume1/web/synology_smart/log"
-temp_dir="/volume1/web/synology_smart/temp"
-email_contents="SMART_email_contents.txt"
-lock_file_location="$temp_dir/SMART_control.lock"
-```
-Ensure that the path ```/volume1/web/``` matches where your NAS web-station package has its root configured. This setup guide does not detail how to install and configure a working PHP web-server on Synology. 
-
-Edit the following lines so if the script cannot load the configuration file it can still send an email
+The script has the following configuration parameters. 
 
 ```
 #########################################################
+# User Variables
+#########################################################
+#suggest to install the script in Synology web directory on volume1 at /volume1/web
+#if a different directory is desired, change variable "script_location" accordingly
+script_location="/volume1/web/synology_smart"
+
 #EMAIL SETTINGS USED IF CONFIGURATION FILE IS UNAVAILABLE
 #These variables will be overwritten with new corrected data if the configuration file loads properly. 
 email_address="email@email.com"
 from_email_address="email@email.com"
-########################################################
+#########################################################
 ```
+
+Ensure that the path ```script_location="/volume1/web/synology_smart"``` matches where your NAS web server software has its root directory configured. This setup guide does not detail how to install and configure a working PHP web-server on Synology or non-Synology systems. 
+
+Edit the email lines so if the script cannot load the configuration file it can still send an email warning notification. 
+
 
 ### Configuration of Synology Task Scheduler (For Synology Systems)
 
@@ -214,6 +227,137 @@ This will execute the script at minute 0, 15, 30, and 45 of every hour, of every
 
 details on crontab can be found here: https://man7.org/linux/man-pages/man5/crontab.5.html and here https://crontab.guru/
 
+### Disk Logging
+Every time a SMART test is performed by the script, either manually or through a schedule, it will save the following information to a file. The log files are displayed in the web-interface for easy access. 
+
+```
+Synology Drive Slot: 2 [Main Unit]
+Disk: /dev/sata3
+Model: HUH721212ALE604
+Serial: REDACTED
+User Capacity:    12,000,138,625,024 bytes [12.0 TB]
+Test Started: 10/11/2024 17:31:06:308
+Test Completed: 10/11/2024 17:31:55:703
+Test Status: PASSED
+
+Full SMART Test Details:
+
+
+smartctl 6.5 (build date Sep 26 2022) [x86_64-linux-4.4.302+] (local build)
+Copyright (C) 2002-16, Bruce Allen, Christian Franke, www.smartmontools.org
+
+=== START OF INFORMATION SECTION ===
+Model Family:     HGST Ultrastar DC HC520 (He12)
+Device Model:     HGST HUH721212ALE604
+Serial Number:    REDACTED
+LU WWN Device Id: 5 000cca 278dc1dde
+Firmware Version: REDACTED
+User Capacity:    12,000,138,625,024 bytes [12.0 TB]
+Sector Sizes:     512 bytes logical, 4096 bytes physical
+Rotation Rate:    7200 rpm
+Form Factor:      3.5 inches
+Device is:        In smartctl database [for details use: -P show]
+ATA Version is:   ACS-2, ATA8-ACS T13/1699-D revision 4
+SATA Version is:  SATA 3.2, 6.0 Gb/s (current: 6.0 Gb/s)
+Local Time is:    Sun Nov 10 17:31:55 2024 CST
+SMART support is: Available - device has SMART capability.
+SMART support is: Enabled
+
+=== START OF READ SMART DATA SECTION ===
+SMART overall-health self-assessment test result: PASSED
+
+General SMART Values:
+Offline data collection status:  (0x82)	Offline data collection activity
+					was completed without error.
+					Auto Offline Data Collection: Enabled.
+Self-test execution status:      (  25)	The self-test routine was aborted by
+					the host.
+Total time to complete Offline 
+data collection: 		(   87) seconds.
+Offline data collection
+capabilities: 			 (0x5b) SMART execute Offline immediate.
+					Auto Offline data collection on/off support.
+					Suspend Offline collection upon new
+					command.
+					Offline surface scan supported.
+					Self-test supported.
+					No Conveyance Self-test supported.
+					Selective Self-test supported.
+SMART capabilities:            (0x0003)	Saves SMART data before entering
+					power-saving mode.
+					Supports SMART auto save timer.
+Error logging capability:        (0x01)	Error logging supported.
+					General Purpose Logging supported.
+Short self-test routine 
+recommended polling time: 	 (   2) minutes.
+Extended self-test routine
+recommended polling time: 	 (1287) minutes.
+SCT capabilities: 	       (0x003d)	SCT Status supported.
+					SCT Error Recovery Control supported.
+					SCT Feature Control supported.
+					SCT Data Table supported.
+
+SMART Attributes Data Structure revision number: 16
+Vendor Specific SMART Attributes with Thresholds:
+ID# ATTRIBUTE_NAME                                                   FLAG     VALUE WORST THRESH TYPE      UPDATED  WHEN_FAILED RAW_VALUE
+  1 Raw_Read_Error_Rate                                              0x000b   100   100   016    Pre-fail  Always       -       0
+  2 Throughput_Performance                                           0x0005   132   132   054    Pre-fail  Offline      -       96
+  3 Spin_Up_Time                                                     0x0007   181   181   024    Pre-fail  Always       -       400 (Average 327)
+  4 Start_Stop_Count                                                 0x0012   100   100   000    Old_age   Always       -       276
+  5 Reallocated_Sector_Ct                                            0x0033   100   100   005    Pre-fail  Always       -       0
+  7 Seek_Error_Rate                                                  0x000b   100   100   067    Pre-fail  Always       -       0
+  8 Seek_Time_Performance                                            0x0005   128   128   020    Pre-fail  Offline      -       18
+  9 Power_On_Hours                                                   0x0012   100   100   000    Old_age   Always       -       3164
+ 10 Spin_Retry_Count                                                 0x0013   100   100   060    Pre-fail  Always       -       0
+ 12 Power_Cycle_Count                                                0x0032   100   100   000    Old_age   Always       -       160
+ 22 Helium_Level                                                     0x0023   100   100   025    Pre-fail  Always       -       100
+192 Power-Off_Retract_Count                                          0x0032   100   100   000    Old_age   Always       -       395
+193 Load_Cycle_Count                                                 0x0012   100   100   000    Old_age   Always       -       395
+194 Temperature_Celsius                                              0x0002   171   171   000    Old_age   Always       -       35 (Min/Max 14/41)
+196 Reallocated_Event_Count                                          0x0032   100   100   000    Old_age   Always       -       0
+197 Current_Pending_Sector                                           0x0022   100   100   000    Old_age   Always       -       0
+198 Offline_Uncorrectable                                            0x0008   100   100   000    Old_age   Offline      -       0
+199 UDMA_CRC_Error_Count                                             0x000a   200   200   000    Old_age   Always       -       0
+
+SMART Error Log Version: 1
+No Errors Logged
+
+SMART Self-test log structure revision number 1
+Num  Test_Description    Status                  Remaining  LifeTime(hours)  LBA_of_first_error
+# 1  Extended offline    Aborted by host               90%      3164         -
+# 2  Extended offline    Aborted by host               90%      3163         -
+# 3  Extended offline    Aborted by host               90%      3163         -
+# 4  Extended offline    Aborted by host               90%      3109         -
+# 5  Extended offline    Aborted by host               90%      3108         -
+# 6  Extended offline    Aborted by host               90%      3093         -
+# 7  Extended offline    Aborted by host               90%      3092         -
+# 8  Extended offline    Aborted by host               90%      3065         -
+# 9  Extended offline    Aborted by host               90%      3065         -
+#10  Extended offline    Aborted by host               90%      3065         -
+#11  Extended offline    Aborted by host               90%      3065         -
+#12  Extended offline    Aborted by host               90%      3064         -
+#13  Extended offline    Aborted by host               90%      3064         -
+#14  Extended offline    Aborted by host               90%      3064         -
+#15  Extended offline    Aborted by host               90%      3064         -
+#16  Extended offline    Aborted by host               90%      3062         -
+#17  Extended offline    Aborted by host               90%      3061         -
+#18  Extended offline    Aborted by host               90%      3016         -
+#19  Extended offline    Aborted by host               90%      3016         -
+#20  Extended offline    Aborted by host               90%      3016         -
+#21  Extended offline    Aborted by host               90%      3015         -
+
+SMART Selective self-test log data structure revision number 1
+ SPAN  MIN_LBA  MAX_LBA  CURRENT_TEST_STATUS
+    1        0        0  Not_testing
+    2        0        0  Not_testing
+    3        0        0  Not_testing
+    4        0        0  Not_testing
+    5        0        0  Not_testing
+Selective self-test flags (0x0):
+  After scanning selected spans, do NOT read-scan remainder of disk.
+If Selective self-test is pending on power-up, resume after 0 minute delay.
+```
+
 
 ### Configuration "smart_scheduler_config.php"
 
@@ -239,6 +383,45 @@ by default the Synology user "http" that web station uses does not have write pe
 <img src="https://raw.githubusercontent.com/wallacebrf/synology_snmp/main/Images/http_user2.png" alt="1314">
 <img src="https://raw.githubusercontent.com/wallacebrf/synology_snmp/main/Images/http_user3.png" alt="1314">
 
+### Configuration of msmtp email settings for Non-Synology systems
+
+In Linux the msmtprc file can be either:
+
+```
+    /etc/msmtprc
+    ~/.msmtprc
+    $XDG_CONFIG_HOME/msmtp/config
+```
+	
+In Asustor's ADM it's:
+
+    ```/usr/builtin/etc/msmtp/msmtprc```
+
+By default the msmtp file contains:
+
+```
+# Set default values for all following accounts.
+defaults
+timeout 15
+tls on
+tls_trust_file /usr/builtin/etc/msmtp/ca-certificates.crt
+#logfile ~/.msmtplog
+
+# The SMTP server of the provider.
+#account user@gmail.com
+#host smtp.gmail.com
+#port 587
+#from user@gmail.com
+#auth on
+#user user@gmail.com
+#password passwd
+
+# Set a default account
+#account default: user@gmail.com
+```
+
+
+Ensure the SMTP server is configured for the server of your choice, and ensure the ```account default``` email address is properly configured.
 
 ### Configuration of required web-interface settings
 
@@ -259,10 +442,15 @@ by default the Synology user "http" that web station uses does not have write pe
 
 8. Chose to use either Synology Mail Plus Server (if it is installed and available) or use the integrated Synology SNMP notifications settings found under ```Control Panel --> Notifications```
 
-
 <!-- CONTRIBUTING -->
 ## Contributing
-https://github.com/007revad 	For the code to determine the drive number of a Synology disk
+
+Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
+
+   -->  Adder of USB support and SAS support to the script
+   
+   --> 	For the code to determine the drive number of a Synology disk
+   
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
