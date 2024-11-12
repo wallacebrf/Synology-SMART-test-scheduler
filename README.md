@@ -11,7 +11,7 @@ Scheduler of Synology SMART tests
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/logo.png" alt="Logo" width="207" height="207">
 <h3 align="center">Synology SMART test scheduler + email notifications</h3>
 
   <p align="center">
@@ -490,6 +490,8 @@ Project Link: [https://github.com/wallacebrf/Synology-SMART-test-scheduler)
 <!-- ACKNOWLEDGMENTS -->
 ## 10.) Acknowledgments
 
-https://github.com/007revad 	For the code to determine the drive number of a Synology disk
+https://github.com/007revad 	For the code to determine the drive number of a Synology disk. Also for suggesting the logo image. 
+
+https://pixabay.com/vectors/glasses-smart-clever-intelligent-98452/ for the logo image
 
 <p align="right">(<a href="#top">back to top</a>)</p>
