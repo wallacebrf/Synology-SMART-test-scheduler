@@ -136,6 +136,14 @@ This script along with the associated web-interface will allow for:
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/12.png" alt="Logo">
 
+### 2.13.1.) Web-Interface (Synology System) With all drives currently testing
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/13.png" alt="Logo">
+
+### 2.13.2.) Web-Interface (NON-Synology System) With all drives currently testing
+
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/14.png" alt="Logo">
+
 </details>
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -436,6 +444,7 @@ Ensure the SMTP server is configured for the server of your choice, and ensure t
 
 ### 6.6.) Configuration of required web-interface settings
 
+<img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/15.png" alt="Logo">
 
 1. Now that the files are where they need to be, using a browser go to the "smart_scheduler_config.php" page. When the page loads for the first time, it will automatically create a configuration file in the ```config``` directory if one does not already exist. the values will all be default values and must be configured. 
 
