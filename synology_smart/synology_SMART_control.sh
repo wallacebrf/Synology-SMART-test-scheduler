@@ -1,7 +1,7 @@
 #!/bin/bash
 # shellcheck disable=SC2129,SC2155,SC2004,SC2034,SC2207,SC2001
 
-version="version 1.4 dated 11/12/2024"
+version="version 1.5 dated 11/12/2024"
 #By Brian Wallace
 
 echo "$version"
