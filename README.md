@@ -288,7 +288,7 @@ This project requires EITHER Synology Mail Plus Server to be installed and runni
 
 OR
 
-This project requires that Synology's ```Control Panel --> Notifications``` SMTP server settings are properly configured.
+This project requires that Synology's ```Control Panel --> Notification``` SMTP server settings are properly configured.
 
 OR
 
@@ -404,7 +404,9 @@ In Linux the msmtprc file can be either:
 	
 In Asustor's ADM it's:
 
-    ```/usr/builtin/etc/msmtp/msmtprc```
+```
+    /usr/builtin/etc/msmtp/msmtprc
+```
 
 By default the msmtp file contains:
 
@@ -449,7 +451,7 @@ Ensure the SMTP server is configured for the server of your choice, and ensure t
 
 7. Give a name to your system so the email notifications can signify which system the messages are from. 
 
-8. Chose to use either Synology Mail Plus Server (if it is installed and available) or use the integrated Synology SNMP notifications settings found under ```Control Panel --> Notifications```
+8. Chose to use either Synology Mail Plus Server (if it is installed and available) or use the integrated Synology SNMP notifications settings found under ```Control Panel --> Notification```
 
 <!-- CONTRIBUTING -->
 ## 7.) Contributing
