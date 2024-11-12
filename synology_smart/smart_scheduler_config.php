@@ -17,8 +17,8 @@ that file with the above line would include the needed headers, footers, and cal
 $script_location="/volume1/web/synology_smart";
 $use_login_sessions=false; //set to false if not using user login sessions
 $form_submittal_destination="smart_scheduler_config.php";
-$page_title="Server2 S.M.A.R.T Scheduler";
-$home="https://home.wallacebrf.us";
+$page_title="DS-920-SPARE S.M.A.R.T Scheduler";
+$home="https://192.168.1.13";
 
 
 ///////////////////////////////////////////////////
@@ -34,9 +34,7 @@ $config_file_name="smart_control_config.txt";
 function print_gallery_history($dir){
   
   	//reads contents of current gallery folder for all the file names
-  	
-  	//what directory to use
-	//$dirName = "".$script_location."/log/history/";
+
 	//opens the directory for reading
 	$dp = opendir($dir)
 		or die("<br /><font color=\"#FF0000\">Cannot Open The Directory </font><br>");
@@ -196,9 +194,9 @@ if(isset($_POST['submit_ups_monitor'])){
 		[$disk_start, $generic_error] = test_input_processing($_POST['disk_'.$x.'_start'], 0, "numeric", 0, 2);
 		//1=extended, 2=short
 		if ($disk_start == 1 ){
-			file_put_contents("".$script_location."/temp/start_test_long_".str_replace("/dev/", "", $drive_name[$x]).".txt", "");
+			file_put_contents("".$script_location."/temp/start_long_".str_replace("/dev/", "", $drive_name[$x]).".txt", "");
 		}else if ($disk_start == 2 ){
-			file_put_contents("".$script_location."/temp/start_test_short_".str_replace("/dev/", "", $drive_name[$x]).".txt", "");
+			file_put_contents("".$script_location."/temp/start_short_".str_replace("/dev/", "", $drive_name[$x]).".txt", "");
 		}
 	}
 	
