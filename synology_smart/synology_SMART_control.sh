@@ -296,10 +296,12 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					disk_list1_exploded+=("$usb_disk")
 				fi
 			done
-		elif [[ ${#tmp_disk_list2_exploded[@]} -gt "0" ]]; then		#/dev/sd* and /dev/hd*
+		elif [[ ${#tmp_disk_list2_exploded[@]} -gt "0" ]]; then				#/dev/sd* and /dev/hd*
 			for tmp_disk in "${tmp_disk_list2_exploded[@]}"; do
-				if not_flash_drive "$tmp_disk"; then				#skip flash drives
+				if is_usb "$tmp_disk" && not_flash_drive "$tmp_disk"; then	#add USB drives except flash drives
 					disk_list2_exploded+=("$tmp_disk")
+				else
+					disk_list2_exploded+=("$tmp_disk")				#add all other drives
 				fi
 			done
 		fi
