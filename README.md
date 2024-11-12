@@ -64,7 +64,7 @@ It is <a href="https://www.reddit.com/r/synology/comments/1gh7x45/synology_is_go
 This script has been preemptively made to cover this possibility. While automated scheduling of SMART tests is already possible with <a href="https://help.ubuntu.com/community/Smartmontools">Smartmontools</a>, this requires the installation of <a href="https://community.synology.com/enu/forum/17/post/15462">IPKG</a> and editing files that are overwritten during system updates. 
 The purpose of this script is to be able to operate using Synology DSM in its "stock" form and configuration. 
 
-This script support SATA, USB, and SAS drives. For USB drives, they are supported even if not visible inside Synology DSM's Storage Manager. 
+This script supports SATA, USB, and SAS drives. For USB drives, they are supported even if not visible inside Synology DSM's Storage Manager. 
 
 This script along with the associated web-interface will allow for:
 
