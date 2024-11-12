@@ -64,7 +64,7 @@ It is <a href="https://www.reddit.com/r/synology/comments/1gh7x45/synology_is_go
 This script has been preemptively made to cover this possibility. While automated scheduling of SMART tests is already possible with <a href="https://help.ubuntu.com/community/Smartmontools">Smartmontools</a>, this requires the installation of <a href="https://community.synology.com/enu/forum/17/post/15462">IPKG</a> and editing files that are overwritten during system updates. 
 The purpose of this script is to be able to operate using Synology DSM in its "stock" form and configuration. 
 
-This script support SATA, USB, and SAS drives. For USB drives, they are supported even if not visible inside Synology DSM's Storage Manager. 
+This script supports SATA, USB, and SAS drives. For USB drives, they are supported even if not visible inside Synology DSM's Storage Manager. 
 
 This script along with the associated web-interface will allow for:
 
@@ -288,7 +288,7 @@ This project requires EITHER Synology Mail Plus Server to be installed and runni
 
 OR
 
-This project requires that Synology's ```Control Panel --> Notifications``` SMTP server settings are properly configured.
+This project requires that Synology's ```Control Panel --> Notification``` SMTP server settings are properly configured.
 
 OR
 
@@ -404,7 +404,9 @@ In Linux the msmtprc file can be either:
 	
 In Asustor's ADM it's:
 
-    ```/usr/builtin/etc/msmtp/msmtprc```
+```
+    /usr/builtin/etc/msmtp/msmtprc
+```
 
 By default the msmtp file contains:
 
@@ -449,7 +451,7 @@ Ensure the SMTP server is configured for the server of your choice, and ensure t
 
 7. Give a name to your system so the email notifications can signify which system the messages are from. 
 
-8. Chose to use either Synology Mail Plus Server (if it is installed and available) or use the integrated Synology SNMP notifications settings found under ```Control Panel --> Notifications```
+8. Chose to use either Synology Mail Plus Server (if it is installed and available) or use the integrated Synology SNMP notifications settings found under ```Control Panel --> Notification```
 
 <!-- CONTRIBUTING -->
 ## 7.) Contributing
