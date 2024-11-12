@@ -18,7 +18,7 @@ $script_location="/volume1/web/synology_smart";
 $use_login_sessions=false; //set to false if not using user login sessions
 $form_submittal_destination="smart_scheduler_config.php";
 $page_title="Server2 S.M.A.R.T Scheduler";
-
+$home="https://home.wallacebrf.us";
 
 
 ///////////////////////////////////////////////////
@@ -26,6 +26,72 @@ $page_title="Server2 S.M.A.R.T Scheduler";
 ///////////////////////////////////////////////////
 $config_file_location="".$script_location."/config";
 $config_file_name="smart_control_config.txt";
+
+
+///////////////////////////////////////////////////
+//Function to print out and display links to the test history files
+///////////////////////////////////////////////////
+function print_gallery_history($dir){
+  
+  	//reads contents of current gallery folder for all the file names
+  	
+  	//what directory to use
+	//$dirName = "".$script_location."/log/history/";
+	//opens the directory for reading
+	$dp = opendir($dir)
+		or die("<br /><font color=\"#FF0000\">Cannot Open The Directory </font><br>");
+	
+	//add all files in directory to $theFiles array
+	while ($currentFile !== false){
+  		$currentFile = readDir($dp);
+  		$theFiles[] = $currentFile;
+	} // end while
+	
+	//because we opened the dir, we need to close it
+	closedir($dp);
+	
+	//sorts all the files
+	rsort ($theFiles);
+	
+	$imageFiles = $theFiles;
+	
+	$last_image = end($imageFiles);
+	//begins printing out the gallery
+	$output = "";
+	$picInRow = 0;
+	print "<table border=\"1px\">";
+	foreach ($imageFiles as $currentFile){
+		$urlname = explode("_", $currentFile);
+		if ( $urlname[1] != ""){
+			if ($picInRow == 0){
+				$output .= <<<HERE
+<tr>
+HERE;
+			}//end if
+			$disk_name=str_replace(".txt", "", "$urlname[2]");
+			$output .= <<<HERE
+<td> <a href = "$home/synology_smart/log/history/$currentFile" target=\"_blank\"><table border="0"><tr><td colspan="2" align="center">$urlname[0]</td></tr><tr><td><b>Disk:</b> $disk_name</td><td><b>Serial:</b> $urlname[1]</td></tr></table></a></td>	
+HERE;
+			$picInRow++;
+			if ($picInRow == 7){//this controls how many images are in each row, this being set to 5 makes 5 images be in each row
+				$output .= <<<HERE
+</tr>\n
+HERE;
+				$picInRow = 0;
+			}else{
+				if ($currentFile == $last_image){
+					$output .= <<<HERE
+</tr>\n
+HERE;
+				}
+			}//end if
+		}
+	} // end foreach
+$output .= <<<HERE
+</table>
+HERE;	
+	return $output;
+}//end function\
 
 ///////////////////////////////////////////////////
 //Beginning of configuration page
@@ -386,21 +452,25 @@ print "						<td align=\"center\"><b>Disk Name</b></td>
 								print "<td align=\"center\">".$drive_slot[$x]."</td>";
 							}
 							print "<td align=\"center\">".$drive_name[$x]."</td>";
-							if ($drive_test_status[$x] == 1){
-										$test_started = substr(file_get_contents("".$script_location."/temp/".str_replace("/dev/", "", $drive_name[$x]).".txt"), 0, 10);
-										print "<td align=\"center\"><input type=\"checkbox\" name=\"disk_".$x."_cancel\" value=\"1\"></td>
-												<td align=\"center\">Test Started ".$test_started."</td>
-												<td></td>";
+							if ($drive_smart_enabled[$x] == 1){
+								if ($drive_test_status[$x] == 1){
+											$test_started = substr(file_get_contents("".$script_location."/temp/".str_replace("/dev/", "", $drive_name[$x]).".txt"), 0, 10);
+											print "<td align=\"center\"><input type=\"checkbox\" name=\"disk_".$x."_cancel\" value=\"1\"></td>
+													<td align=\"center\">Test Started ".$test_started."</td>
+													<td></td>";
+								}else{
+										print "<td align=\"center\">No Active Test</td>
+										<td align=\"center\">
+											<select name=\"disk_".$x."_start\">
+												<option value=\"0\" selected></option>
+												<option value=\"1\">Extended Test</option>
+												<option value=\"2\">Short Test</option>
+											</select>
+										</td>
+										<td align=\"center\">".$drive_test_duration[$x]."</td>";					
+								}
 							}else{
-									print "<td align=\"center\">No Active Test</td>
-									<td align=\"center\">
-										<select name=\"disk_".$x."_start\">
-											<option value=\"0\" selected></option>
-											<option value=\"1\">Extended Test</option>
-											<option value=\"2\">Short Test</option>
-										</select>
-									</td>
-									<td align=\"center\">".$drive_test_duration[$x]."</td>";					
+								print "<td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td>";
 							}
 print "						</tr>";	
 						}
@@ -408,7 +478,13 @@ print "						</tr>";
 					
 print "				</table></fieldset>	<center><input type=\"submit\" name=\"submit_ups_monitor\" value=\"Submit\" /></center>
 				</form>
-			</td>
+				<fieldset>
+					<legend>
+						<b>HISTORY LOGS</b>
+					</legend>";
+				echo "".print_gallery_history("".$script_location."/log/history/")."";
+				print "<fieldset>";
+print "		</td>
 		</tr>
 	</table>
 </fieldset>";
