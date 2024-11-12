@@ -1,8 +1,10 @@
 #!/bin/bash
 # shellcheck disable=SC2129,SC2155,SC2004,SC2034,SC2207,SC2001
 
-#version 1.4 dated 11/12/2024
+version="version 1.4 dated 11/12/2024"
 #By Brian Wallace
+
+echo "$version"
 
 #Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
 #	--> Adder of USB support
@@ -296,10 +298,13 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					disk_list1_exploded+=("$usb_disk")
 				fi
 			done
-		elif [[ ${#tmp_disk_list2_exploded[@]} -gt "0" ]]; then				#/dev/sd* and /dev/hd*
+		elif [[ ${#tmp_disk_list2_exploded[@]} -gt "0" ]]; then		#/dev/sd* and /dev/hd*
 			for tmp_disk in "${tmp_disk_list2_exploded[@]}"; do
-				if is_usb "$tmp_disk" && not_flash_drive "$tmp_disk"; then	#add USB drives except flash drives
-					disk_list2_exploded+=("$tmp_disk")
+				tmp="$(echo "$(basename "$tmp_disk")" | cut -d":" -f1)"
+				if is_usb "$tmp"; then		#add USB drives except flash drives
+					if not_flash_drive "$tmp"; then
+						disk_list2_exploded+=("$tmp_disk")
+					fi
 				else
 					disk_list2_exploded+=("$tmp_disk")				#add all other drives
 				fi
