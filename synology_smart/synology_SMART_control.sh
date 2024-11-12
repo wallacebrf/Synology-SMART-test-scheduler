@@ -405,12 +405,12 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				if [[ $disk =~ "usb" ]] || is_usb "$disk"; then
 					#get usb_name as USB Disk 1 or USB Disk 2 etc (works in DSM 6 and 7)
 					usb_name="$(synousbdisk -info "$(basename "$disk")" | grep -E '^Name:' | cut -d" " -f2-)"
-					disk_drive_slot="Synology $usb_name"
+					disk_drive_slot=";Synology $usb_name"
 				else
 					disk_drive_slot=";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
 				fi
 			else
-				disk_drive_slot=""
+				disk_drive_slot=";"
 			fi
 			
 			#save a configuration file so the script and web-interface know this is a Synology system or not
