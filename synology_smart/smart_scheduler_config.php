@@ -77,8 +77,65 @@ $from_email_error="";
 $next_scan_time_window_error="";
 $NAS_name_error="";
 $use_send_mail_error="";
+$syno_check=0;
+$number_drives=0;
+$drive_slot=[]; 
+$drive_name=[]; 
+$drive_model=[]; 
+$drive_serial=[]; 
+$drive_test_status=[]; 
+$drive_test_percent=[];
+$drive_test_pass_fail=[]; 
+$drive_capacity=[]; 
+$drive_test_duration=[];
+$drive_smart_enabled=[];
+
+
+if (file_exists("".$script_location."/config/syno_model.txt")) {
+	$syno_check=1;
+	$model = file_get_contents("".$script_location."/config/syno_model.txt");
+}else if (file_exists("".$script_location."/config/not_syno_model.txt")) {
+	$model = file_get_contents("".$script_location."/config/not_syno_model.txt");
+}
+
+if (file_exists("".$script_location."/log/disk_scan_status.txt")) {
+		$data = file_get_contents("".$script_location."/log/disk_scan_status.txt");
+		$pieces = explode(";", $data);
+		$last_updated=$pieces[0];
+		$number_drives=(sizeof($pieces)-1)/10;
+		
+		for ($x = 0; $x < $number_drives; $x++) {
+			array_push($drive_slot, $pieces[1+$x*10]);
+			array_push($drive_name, $pieces[2+$x*10]);
+			array_push($drive_model, $pieces[3+$x*10]);
+			array_push($drive_serial, $pieces[4+$x*10]);
+			array_push($drive_test_status, $pieces[5+$x*10]);
+			array_push($drive_test_percent, $pieces[6+$x*10]);
+			array_push($drive_test_pass_fail, $pieces[7+$x*10]);
+			array_push($drive_capacity, $pieces[8+$x*10]);
+			array_push($drive_test_duration, $pieces[9+$x*10]);
+			array_push($drive_smart_enabled, $pieces[10+$x*10]);
+		}
+}
 	
 if(isset($_POST['submit_ups_monitor'])){
+	
+	//process disk testing cancellations and starts 
+	for ($x = 0; $x < $number_drives; $x++) {
+		[$disk_cancel, $generic_error] = test_input_processing($_POST['disk_'.$x.'_cancel'], "", "checkbox", 0, 0);
+		if ($disk_cancel == 1 ){
+			file_put_contents("".$script_location."/temp/cancel_".str_replace("/dev/", "", $drive_name[$x]).".txt", "");
+		}
+		
+		[$disk_start, $generic_error] = test_input_processing($_POST['disk_'.$x.'_start'], 0, "numeric", 0, 2);
+		//1=extended, 2=short
+		if ($disk_start == 1 ){
+			file_put_contents("".$script_location."/temp/start_test_long_".str_replace("/dev/", "", $drive_name[$x]).".txt", "");
+		}else if ($disk_start == 2 ){
+			file_put_contents("".$script_location."/temp/start_test_short_".str_replace("/dev/", "", $drive_name[$x]).".txt", "");
+		}
+	}
+	
 	if (file_exists("$config_file")) {
 		$data = file_get_contents("$config_file");
 		$pieces = explode(",", $data);
@@ -263,10 +320,93 @@ print "					</select></p>
 						}
 print "					</select></p>
 					</fieldset>	
+					<fieldset>
+						<legend>
+							<b>Live Disk S.M.A.R.T. Status [Last Updated: ".$last_updated."]</b>
+						</legend>";
+						echo "<table border=\"1\">
+						<tr>";
+							if ($syno_check == 1){
+								print "<td align=\"center\"><b>Synology Slot</b></td>";
+							}
+print "						<td align=\"center\"><b>Disk Name</b></td>
+							<td align=\"center\"><b>Disk Model</b></td>
+							<td align=\"center\"><b>Disk Serial</b></td>
+							<td align=\"center\"><b>Test Status</b></td>
+							<td align=\"center\"><b>Test Percent</b></td>
+							<td align=\"center\"><b>Test Result</b></td>
+							<td align=\"center\"><b>Disk Capacity</b></td>
+							<td align=\"center\"><b>Smart Enabled</b></td>
+						</tr>";
+						for ($x = 0; $x < $number_drives; $x++) {
+							
+							echo "<tr>";
+									if ($syno_check == 1){
+										print "<td align=\"center\">".$drive_slot[$x]."</td>";
+									}
+print "								<td align=\"center\">".$drive_name[$x]."</td>
+									<td align=\"center\">".$drive_model[$x]."</td>
+									<td align=\"center\">".$drive_serial[$x]."</td>";
+									if ($drive_test_status[$x] == 1){
+										print "<td align=\"center\">ACTIVE</td>";
+									}else{
+										print "<td align=\"center\">NOT ACTIVE</td>";
+									}
+print "								<td align=\"center\">".$drive_test_percent[$x]."</td>
+									<td align=\"center\">".$drive_test_pass_fail[$x]."</td>
+									<td align=\"center\">".str_replace("User Capacity: ", "", "$drive_capacity[$x]")."</td>";
+									if ($drive_smart_enabled[$x] == 1){
+										print "<td align=\"center\">ENABLED</td>";
+									}else{
+										print "<td align=\"center\">DISABLED</td>";
+									}
+print "							</tr>";
+						}
 						
+
+print "					</table></fieldset>	
+
+						<fieldset>
+						<legend>
+							<b>Manual S.M.A.R.T Test Control</b>
+						</legend>
+						<table border=\"1\">
+						<tr>";
+							if ($syno_check == 1){
+								print "<td align=\"center\"><b>Synology Slot</b></td>";
+							}
+print "						<td align=\"center\"><b>Disk Name</b></td>
+							<td align=\"center\"><b>Cancel Test?</b></td>
+							<td align=\"center\"><b>Manual Start Test?</b></td>
+							<td align=\"center\"><b>Test Duration (est</b>)</td>
+						</tr>";
+						for ($x = 0; $x < $number_drives; $x++) {
+							print "<tr>";
+							if ($syno_check == 1){
+								print "<td align=\"center\">".$drive_slot[$x]."</td>";
+							}
+							print "<td align=\"center\">".$drive_name[$x]."</td>";
+							if ($drive_test_status[$x] == 1){
+										$test_started = substr(file_get_contents("".$script_location."/temp/".str_replace("/dev/", "", $drive_name[$x]).".txt"), 0, 10);
+										print "<td align=\"center\"><input type=\"checkbox\" name=\"disk_".$x."_cancel\" value=\"1\"></td>
+												<td align=\"center\">Test Started ".$test_started."</td>
+												<td></td>";
+							}else{
+									print "<td align=\"center\">No Active Test</td>
+									<td align=\"center\">
+										<select name=\"disk_".$x."_start\">
+											<option value=\"0\" selected></option>
+											<option value=\"1\">Extended Test</option>
+											<option value=\"2\">Short Test</option>
+										</select>
+									</td>
+									<td align=\"center\">".$drive_test_duration[$x]."</td>";					
+							}
+print "						</tr>";	
+						}
 						
 					
-					<center><input type=\"submit\" name=\"submit_ups_monitor\" value=\"Submit\" /></center>
+print "				</table></fieldset>	<center><input type=\"submit\" name=\"submit_ups_monitor\" value=\"Submit\" /></center>
 				</form>
 			</td>
 		</tr>
