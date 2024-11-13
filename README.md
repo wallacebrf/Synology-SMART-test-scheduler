@@ -438,11 +438,127 @@ tls_trust_file /usr/builtin/etc/msmtp/ca-certificates.crt
 # Set a default account
 #account default: user@gmail.com
 ```
-
-
 Ensure the SMTP server is configured for the server of your choice, and ensure the ```account default``` email address is properly configured.
 
-### 6.6.) Configuration of required web-interface settings
+### 6.6.) Synology Web-Station setup
+If using a Synology NAS and wish to utilize the PHP web-interface, follow these instructions to setup Web Station
+
+1.) ensure web station and PHP 8.2 are installed in package center
+
+2.) inside web-station go to "Script Language Settings --> PHP tab --> Create
+     
+   a.) Enter profile name "core"
+     
+   b.) Enter Description as "core"
+    
+   c.) choose PHP 8.2 for PHP version
+     
+   d.) click "enable display_errors to display PHP error messages
+    
+   e.) keep "customize PHO open_basedir as "default"
+     
+   f.) click next
+    
+   g.) enable all extensions
+    
+   h.) click next
+    
+   i.) leave as default
+    
+   j.) click next
+    
+   k.) leave as default
+    
+   l.) click next
+    
+   m.) review the settings and click "create"
+
+3.) inside web-station to to "Web Service" --> create
+   
+   a.) choose "native script language website"
+   
+   b.) under service, click PHP 8.2 and choose the "core" PHP profile previously created
+   
+   c.) click next
+   
+   d.) enter a name "core"
+   
+   e.) Enter Description as "core"
+  
+   f.) choose document root as "/volume1/web" shared folder
+  
+   g.) for HTTP back-end-server click "Nginx"
+  
+   h.) leave timeout settings as default
+   
+   i.) click next
+  
+   j.) review the settings, and click "create"
+
+4.) inside web-station to to "Web Portal--> create
+  
+   a.) choose the "web service portal"
+  
+   b.) under "service" choose the "core" service we created previously
+  
+   c.) under portal type leave as "name based"
+  
+   d.) choose a hostname, like "home". This should be same value as the NAS's name
+   
+   e.) choose ports. suggest standard web-server ports 80/443
+   
+   f.) under HTTPS settings, choose to enable "HSTS"
+   
+   g.) under "access control profile" leave as "not configured"
+   
+   h.) under "error page profile" choose "default error page profile"
+  
+   i.) enable "enable access logs"
+  
+   j.) click create
+
+### 6.7.) Asustor web portal setup
+If using an Austor NAS and wish to utilize the PHP web-interface, follow these instructions to setup the web portal
+
+1. In ADM click on Web Center > Implementation.
+
+2. Check that PHP is installed and showing "Status: Active".
+
+3. Check either Apache or Nginx is installed and showing "Status: Active".
+
+4. Click on the "Web Server" tab.
+
+5. Check "Web server implementation" is set to Apache or Nginx.
+
+6. Tick "Enable Web server port" and/or "Enable secure Web server port".
+
+7. Change the "Web server port" and/or "secure Web server port" to your desired ports, or leave them on the defaults.
+
+8. Check "PHP implementation" is set to the installed PHP version.
+
+9. Click on the "Virtual Host" tab.
+
+10. Click Add.
+
+11. Give it a unique Host name (e.g. "smart" will do).
+
+12. Select the Protocol you prefer (HTTP or HTTPS).
+
+13. If you set a web server port in step 7 make sure that "Port number" matches.
+
+14. Click Browse and browse to "Web > synology_smart".
+
+15. Click OK.
+
+You can now access the Synology-SMART-scheduler webui on either:
+- https://<ip-address>/synology_smart/smart_scheduler_config.php
+- http://<ip-address>/synology_smart/smart_scheduler_config.php
+
+Note: Replace <ip-address> with your Asustor's IP Address or Hostname.
+
+### 6.8.) Configuration of required user level settings
+
+### 6.8.1.) Configuration through PHP Web-Interface
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/15.png" alt="Logo">
 
@@ -461,6 +577,29 @@ Ensure the SMTP server is configured for the server of your choice, and ensure t
 7. Give a name to your system so the email notifications can signify which system the messages are from. 
 
 8. Chose to use either Synology Mail Plus Server (if it is installed and available) or use the integrated Synology SNMP notifications settings found under ```Control Panel --> Notification```
+
+### 6.8.2.) Configuration without using a web-interface
+In the event use of this script is desired without using the web-interface, the script settings can be configured using a text editor. 
+
+open file ```/path_to_server_root/synology_smart/config/smart_control_config.txt``` and edit the paramters as detailed below
+
+```
+1,4,1,email@email.com,email@email.com,1,NAS_NAME,0
+| | |      |               |          |     |    |
+| | |      |               |          |     |    |
+| | |      |               |          |     |    |---> Email Program: ssmtp (0) / Synology MailPlus-Server (1) / msmtp (2)
+| | |      |               |          |     |---> System Name used to send email notifications
+| | |      |               |          |---> Next Scan Type: All Drives Concurrently (1) / One Drive at a time sequentailly (0)
+| | |      |               |---> To Email Address (multiple addresses separate by semi-colon
+| | |      |---> From Email Address
+| | |---> Email Notifications: Enabled (1) / Disabled (0)
+| |---> Next Scan Time Window: daily (1) / weekly (2) / monthly (3) / every three months (4) / every 6 months (5)
+|---> Script Enable: (1) / Script Disable (0)
+```
+
+If the date/time of the next scan needs to be changed, use the following web site: https://www.epochconverter.com/ to generate the epoc time stamp of the date/time desired for the next scan
+
+edit the following file in a text editor: ```/path_to_server_root/synology_smart/config/next_scan_time.txt```
 
 <!-- CONTRIBUTING -->
 ## 7.) Contributing
