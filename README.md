@@ -29,33 +29,38 @@ Scheduler of Synology SMART tests
 
 
 <!-- TABLE OF CONTENTS -->
-<details>
   <summary>Table of Contents</summary>
   <ol>
     <li>
       <a href="#About_the_project_Details">About The Project</a> 
    </li>
    <li>
-      <a href="#Example_outputs_of_the_script">Example outputs of the script</a>
+      <a href="#Example_outputs_of_the_script">Example Images</a>
+	   <ul>
+		<li><a href="#No_Scheduled_Tests">2.1.) No Scheduled Tests</a> </li>
+		<li><a href="#All_drives_concurrently">2.2.) All drives concurrently</a></li>
+		<li><a href="#Drives_testing_individually">2.3.) Drives testing individually, disk 1 of 3 scanning, other two drives waiting</a></li>
+		<li><a href="#testing_individually_disk_2_of_3_scanning">2.4.)  testing individually, disk 2 of 3 scanning, the first marked complete and the third drive waiting</a> </li>
+		<li><a href="#drives_testing_individually_disk_3_of_3_scanning">2.5.) drives testing individually, disk 3 of 3 scanning, the first and 2nd marked complete</a></li>
+		<li><a href="#email_of_a_disk_starting_testing">2.6.) email of a disk starting testing</a></li>
+		<li><a href="#email_of_a_disk_finishing_testing">2.7.) email of a disk finishing testing</a> </li>
+		<li><a href="#disk_test_manually_canceled_by_the_user">2.8.) disk test manually canceled by the user</a></li>
+		<li><a href="#manual_test_running">2.9.) manual test running</a></li>
+		<li><a href="#disk_test_manually_started_by_the_user">2.10.) disk test manually started by the user</a></li>
+		<li><a href="#Synology_System_with_disks_in_the_main_DS920_unit_and_disks_inside_a_DX517_expansion_unit">2.11.) Synology System with disks in the main DS920 unit and disks inside a DX517 expansion unit</a></li>
+		<li><a href="#USB_drive_started_manually_by_user">2.12.) USB drive (on a Synology DS920) started manually by user</a></li>
+		<li><a href="#Web-Interface_Synology_With_all_drives_currently_testing">2.13.1.) Web-Interface (Synology System) With all drives currently testing</a></li>
+		<li><a href="#Interface_With_all_drives_currently_testing">2.13.2.) Web-Interface (NON-Synology System) With all drives currently testing</a></li>
+	   </ul>
    </li>
    <li>
-      <a href="#Disk_Logging"> Disk Logging</a>
+      <a href="#Disk_Logging">Disk Logging</a>
     </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
+ <li>
+      <a href="#Getting_Started">Getting Started</a>
     </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Road map</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
-</details>
+
 
 
 
@@ -92,58 +97,85 @@ This script along with the associated web-interface will allow for:
 <details>
 
 <summary>Expand to see examples</summary>
+<div id="No_Scheduled_Tests"></div>
 
 ### 2.1.) No Scheduled Tests 
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/1.png" alt="Logo">
 
+<div id="All_drives_concurrently"></div>
+
 ### 2.2.) All drives concurrently
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/2.png" alt="Logo">
+
+<div id="Drives_testing_individually"></div>
 
 ### 2.3.) Drives testing individually, disk 1 of 3 scanning, other two drives waiting
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/3.png" alt="Logo">
 
+<div id="testing_individually_disk_2_of_3_scanning"></div>
+
 ### 2.4.)  testing individually, disk 2 of 3 scanning, the first marked complete and the third drive waiting 
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/4.png" alt="Logo">
+
+<div id="drives_testing_individually_disk_3_of_3_scanning"></div>
 
 ### 2.5.) drives testing individually, disk 3 of 3 scanning, the first and 2nd marked complete
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/5.png" alt="Logo">
 
+<div id="email_of_a_disk_starting_testing"></div>
+
 ### 2.6.) email of a disk starting testing
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/6.png" alt="Logo">
+
+<div id="email_of_a_disk_finishing_testing"></div>
 
 ### 2.7.) email of a disk finishing testing 
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/7.png" alt="Logo">
 
+<div id="disk_test_manually_canceled_by_the_user"></div>
+
 ### 2.8.) disk test manually canceled by the user
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/8.png" alt="Logo">
+
+<div id="manual_test_running"></div>
 
 ### 2.9.) manual test running
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/9.png" alt="Logo">
 
+<div id="disk_test_manually_started_by_the_user"></div>
+
 ### 2.10.) disk test manually started by the user
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/10.png" alt="Logo">
+
+<div id="Synology_System_with_disks_in_the_main_DS920_unit_and_disks_inside_a_DX517_expansion_unit"></div>
 
 ### 2.11.) Synology System with disks in the main DS920 unit and disks inside a DX517 expansion unit
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/11.png" alt="Logo">
 
+<div id="USB_drive_started_manually_by_user"></div>
+
 ### 2.12.) USB drive (on a Synology DS920) started manually by user
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/12.png" alt="Logo">
 
+<div id="Web-Interface_Synology_With_all_drives_currently_testing"></div>
+
 ### 2.13.1.) Web-Interface (Synology System) With all drives currently testing
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/13.png" alt="Logo">
+
+<div id="Web-Interface_With_all_drives_currently_testing"></div>
 
 ### 2.13.2.) Web-Interface (NON-Synology System) With all drives currently testing
 
@@ -290,6 +322,8 @@ If Selective self-test is pending on power-up, resume after 0 minute delay.
 </details>
 
 <!-- GETTING STARTED -->
+<div id="Getting_Started"></div>
+
 ## 4.) Getting Started
 
 This project is written around a Synology NAS, however it should work with any linux based system with ```smartctl``` installed and a working PHP powered web-server (Note, PHP web server is not required, but adds useful features and ease of use. Refer to the details below on configuring the script without the web-interface). The script has been verified to work Asustor NAS units in adition to Synology NAS units. The script supports three mail programs, ```sendmail``` used by Synology MailPlus Server, ```snmp``` which Synology uses but is not maintained any longer, and ```msmtp```. If a linux system uses something other than these three programs, email notifications will not work. Please feel free to submit either an issue request and or a pull request to add addtional mail program handlers. 
