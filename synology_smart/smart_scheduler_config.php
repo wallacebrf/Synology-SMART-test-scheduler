@@ -17,7 +17,8 @@ that file with the above line would include the needed headers, footers, and cal
 $script_location="/volume1/web/synology_smart";
 $use_login_sessions=false; //set to false if not using user login sessions
 $form_submittal_destination="smart_scheduler_config.php";
-$page_title="DS-920-SPARE S.M.A.R.T Scheduler";
+$host_name=php_uname('n');
+$page_title="$host_name S.M.A.R.T Scheduler";
 $home="https://192.168.1.13";
 
 
