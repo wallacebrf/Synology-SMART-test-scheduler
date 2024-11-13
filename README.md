@@ -37,18 +37,18 @@ Scheduler of Synology SMART tests
    <li>
       <a href="#Example_outputs_of_the_script">Example Images</a>
 	   <ul>
-		<li><a href="#No_Scheduled_Tests">2.1.) No Scheduled Tests</a> </li>
-		<li><a href="#All_drives_concurrently">2.2.) All drives concurrently</a></li>
-		<li><a href="#Drives_testing_individually">2.3.) Drives testing individually, disk 1 of 3 scanning, other two drives waiting</a></li>
-		<li><a href="#testing_individually_disk_2_of_3_scanning">2.4.)  testing individually, disk 2 of 3 scanning, the first marked complete and the third drive waiting</a> </li>
-		<li><a href="#drives_testing_individually_disk_3_of_3_scanning">2.5.) drives testing individually, disk 3 of 3 scanning, the first and 2nd marked complete</a></li>
-		<li><a href="#email_of_a_disk_starting_testing">2.6.) email of a disk starting testing</a></li>
-		<li><a href="#email_of_a_disk_finishing_testing">2.7.) email of a disk finishing testing</a> </li>
-		<li><a href="#disk_test_manually_canceled_by_the_user">2.8.) disk test manually canceled by the user</a></li>
-		<li><a href="#manual_test_running">2.9.) manual test running</a></li>
-		<li><a href="#disk_test_manually_started_by_the_user">2.10.) disk test manually started by the user</a></li>
-		<li><a href="#Synology_System_with_disks_in_the_main_DS920_unit_and_disks_inside_a_DX517_expansion_unit">2.11.) Synology System with disks in the main DS920 unit and disks inside a DX517 expansion unit</a></li>
-		<li><a href="#USB_drive_started_manually_by_user">2.12.) USB drive (on a Synology DS920) started manually by user</a></li>
+		<li><a href="#No_Scheduled_Tests">2.1.) (Bash View) No Scheduled Tests</a> </li>
+		<li><a href="#All_drives_concurrently">2.2.) (Bash View) All drives concurrently</a></li>
+		<li><a href="#Drives_testing_individually">2.3.) (Bash View) Drives testing individually, disk 1 of 3 scanning, other two drives waiting</a></li>
+		<li><a href="#testing_individually_disk_2_of_3_scanning">2.4.)  (Bash View) Testing individually, disk 2 of 3 scanning, the first marked complete and the third drive waiting</a> </li>
+		<li><a href="#drives_testing_individually_disk_3_of_3_scanning">2.5.) (Bash View) Drives testing individually, disk 3 of 3 scanning, the first and 2nd marked complete</a></li>
+		<li><a href="#email_of_a_disk_starting_testing">2.6.) Email of a disk starting testing</a></li>
+		<li><a href="#email_of_a_disk_finishing_testing">2.7.) Email of a disk finishing testing</a> </li>
+		<li><a href="#disk_test_manually_canceled_by_the_user">2.8.) (Bash View) Disk test manually canceled by the user</a></li>
+		<li><a href="#manual_test_running">2.9.) (Bash View) Manual test running</a></li>
+		<li><a href="#disk_test_manually_started_by_the_user">2.10.) Email of disk test manually started by the user</a></li>
+		<li><a href="#Synology_System_with_disks_in_the_main_DS920_unit_and_disks_inside_a_DX517_expansion_unit">2.11.) (Bash View) Synology System with disks in the main DS920 unit and disks inside a DX517 expansion unit</a></li>
+		<li><a href="#USB_drive_started_manually_by_user">2.12.) (Bash View) USB drive (on a Synology DS920) started manually by user</a></li>
 		<li><a href="#Web-Interface_Synology_With_all_drives_currently_testing">2.13.1.) Web-Interface (Synology System) With all drives currently testing</a></li>
 		<li><a href="#Interface_With_all_drives_currently_testing">2.13.2.) Web-Interface (NON-Synology System) With all drives currently testing</a></li>
 	   </ul>
