@@ -33,9 +33,13 @@ Scheduler of Synology SMART tests
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#1.) About the project Details">About The Project</a>
-      <a href="#2.) Example outputs of the script">Example outputs of the script</a>
-      <a href="#3.) Disk Logging"> Disk Logging</a>
+      <a href="#About_the_project_Details">About The Project</a> 
+   </li>
+   <li>
+      <a href="#Example_outputs_of_the_script">Example outputs of the script</a>
+   </li>
+   <li>
+      <a href="#Disk_Logging"> Disk Logging</a>
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
@@ -56,6 +60,7 @@ Scheduler of Synology SMART tests
 
 
 <!-- ABOUT THE PROJECT -->
+<div id="About_the_project_Details"></div>
 ### 1.) About the project Details
 
 It is <a href="https://www.reddit.com/r/synology/comments/1gh7x45/synology_is_going_to_deprecate_smart_task/">rumored</a> that Synology may be removing the ability to schedule SMART tests in the DSM GUI. 
@@ -83,6 +88,7 @@ This script along with the associated web-interface will allow for:
 
 
 ### 2.) Example outputs of the script
+<div id="Example_outputs_of_the_script"></div>
 <details>
 
 <summary>Expand to see examples</summary>
@@ -147,6 +153,7 @@ This script along with the associated web-interface will allow for:
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ### 3.) Disk Logging
+<div id="Disk_Logging"></div>
 Every time a SMART test is performed by the script, either manually or through a schedule, it will save the following information to a file. The log files are displayed in the web-interface for easy access. 
 
 <details>
