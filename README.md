@@ -33,10 +33,9 @@ Scheduler of Synology SMART tests
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#About_the_project_Details">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
+      <a href="#1.) About the project Details">About The Project</a>
+      <a href="#2.) Example outputs of the script">Example outputs of the script</a>
+      <a href="#3.) Disk Logging"> Disk Logging</a>
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
@@ -286,7 +285,7 @@ If Selective self-test is pending on power-up, resume after 0 minute delay.
 <!-- GETTING STARTED -->
 ## 4.) Getting Started
 
-This project is written around a Synology NAS, however it should work with any linux based system with ```smartctl``` installed and a working PHP powered web-server. It has been verified to work Asustor NAS units. The script supports three mail programs, ```sendmail``` used by Synology MailPlus Server, ```snmp``` which Synology uses but is not maintained any longer, and ```msmtp```. If a linux system uses something other than these three programs, email notifications will not work. 
+This project is written around a Synology NAS, however it should work with any linux based system with ```smartctl``` installed and a working PHP powered web-server (Note, PHP web server is not required, but adds useful features and ease of use. Refer to the details below on configuring the script without the web-interface). The script has been verified to work Asustor NAS units in adition to Synology NAS units. The script supports three mail programs, ```sendmail``` used by Synology MailPlus Server, ```snmp``` which Synology uses but is not maintained any longer, and ```msmtp```. If a linux system uses something other than these three programs, email notifications will not work. Please feel free to submit either an issue request and or a pull request to add addtional mail program handlers. 
 
 ### 5.) Prerequisites
 
@@ -306,9 +305,7 @@ The user can choose which email notification service is preferred. It is recomme
 
 ### 6.) Installation
 
-Download the zip file ```synology_smart.zip``` as that already contains the required files, and folder structure. 
-
-If that is not desired, manually create the following directories starting in the root of your web server. 
+ Create the following directories starting in the root of your web server. 
 
 ```
 1.) /path_to_server_root/synology_smart
