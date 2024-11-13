@@ -59,6 +59,36 @@ Scheduler of Synology SMART tests
  <li>
       <a href="#Getting_Started">Getting Started</a>
     </li>
+	  <li>
+      <a href="#Prerequisites">Prerequisites</a> 
+   </li>
+	   <li>
+      <a href="#Installation">Installation</a> 
+		   <ul>
+			<li><a href="#Configuration_synology_SMART_control.sh">6.1) Configuration synology SMART control.sh</a> </li>
+			   <li><a href="#Automatic_Scheduled_Execution_of_Script_every_10-15_minutes_syno">6.2.1) Automatic Scheduled Execution of Script every 10-15 minutes (Synology)</a> </li>
+			   <li><a href="#Automatic_Scheduled_Execution_of_Script_every_10-15_minutes">6.2.2) Automatic Scheduled Execution of Script every 10-15 minutes (Non Synology Systems)</a> </li>
+			   <li><a href="#Configuration_smart_scheduler_config">6.3) Configuration smart scheduler config</a> </li>
+			   <li><a href="#Configuration_of_http_user_permissions">6.4) Configuration of http user permissions (Synology Only)</a> </li>
+			   <li><a href="#Configuration_of_msmtp_email_settings_for_Non-Synology_systems">6.5.) Configuration of msmtp email settings (Non-Synology systems)</a> </li>
+			   <li><a href="#Synology_Web-Station_setup">6.6) Synology Web-Station setup</a> </li>
+			   <li><a href="#Asustor_web_portal_setup">6.7) Asustor web-portal setup</a> </li>
+			   <li><a href="#Configuration_through_PHP_Web-Interface">6.8.1) Configuration through PHP Web-Interface</a> </li>
+			   <li><a href="#Configuration_without_using_a_web-interface">6.8.2 Configuration without using a web-interface</a> </li>
+      		   </ul>
+   </li>
+	  <li>
+      <a href="#Contributing">Contributing</a> 
+   </li>
+	  <li>
+      <a href="#License">License</a> 
+   </li>
+	  <li>
+      <a href="#Contact">Contact</a> 
+   </li>
+	  <li>
+      <a href="#Acknowledgments">Acknowledgments</a> 
+   </li>
   </ol>
 
 
@@ -94,9 +124,7 @@ This script along with the associated web-interface will allow for:
 
 ### 2.) Example outputs of the script
 <div id="Example_outputs_of_the_script"></div>
-<details>
 
-<summary>Expand to see examples</summary>
 <div id="No_Scheduled_Tests"></div>
 
 ### 2.1.) No Scheduled Tests 
@@ -181,16 +209,11 @@ This script along with the associated web-interface will allow for:
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/14.png" alt="Logo">
 
-</details>
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ### 3.) Disk Logging
 <div id="Disk_Logging"></div>
 Every time a SMART test is performed by the script, either manually or through a schedule, it will save the following information to a file. The log files are displayed in the web-interface for easy access. 
-
-<details>
-
-<summary>Expand to see Results of Disk Logging</summary>
 
 ```
 Synology Drive Slot: 2 [Main Unit]
@@ -319,7 +342,6 @@ Selective self-test flags (0x0):
   After scanning selected spans, do NOT read-scan remainder of disk.
 If Selective self-test is pending on power-up, resume after 0 minute delay.
 ```
-</details>
 
 <!-- GETTING STARTED -->
 <div id="Getting_Started"></div>
@@ -327,6 +349,8 @@ If Selective self-test is pending on power-up, resume after 0 minute delay.
 ## 4.) Getting Started
 
 This project is written around a Synology NAS, however it should work with any linux based system with ```smartctl``` installed and a working PHP powered web-server (Note, PHP web server is not required, but adds useful features and ease of use. Refer to the details below on configuring the script without the web-interface). The script has been verified to work Asustor NAS units in adition to Synology NAS units. The script supports three mail programs, ```sendmail``` used by Synology MailPlus Server, ```snmp``` which Synology uses but is not maintained any longer, and ```msmtp```. If a linux system uses something other than these three programs, email notifications will not work. Please feel free to submit either an issue request and or a pull request to add addtional mail program handlers. 
+
+<div id="Prerequisites"></div>
 
 ### 5.) Prerequisites
 
@@ -343,6 +367,8 @@ OR
 for non-Synology systems, use ```msmtp```. This read-me will lightly touch on configuration of ```msmtp``` however these instructions may not apply to all linux systems.  
 
 The user can choose which email notification service is preferred. It is recommended to use the Synology control panel SMTP notification option (if using Synology) as it does not require additional packages to be installed. However if Synology Mail Plus Server is already installed and running, it is recommended to use it as it sends emails faster, supports message queues and provides logs/history of messages sent. 
+
+<div id="Installation"></div>
 
 ### 6.) Installation
 
@@ -362,6 +388,8 @@ The user can choose which email notification service is preferred. It is recomme
 
 
 The ```synology_SMART_control.sh``` script file must be downloaded and placed in the ```/path_to_server_root/synology_smart``` directory. 
+
+<div id="Configuration_synology_SMART_control.sh"></div>
 
 ### 6.1.) Configuration "synology_SMART_control.sh"
 
@@ -389,6 +417,8 @@ Edit the email lines so if the script cannot load the configuration file it can 
 ### 6.2.) Automatic Scheduled Execution of Script every 10-15 minutes 
 There are two ways to ensure the script executes every 10-15 minutes. That would be using crontab (works on both Synology and non-Synology systems) or use Synology Task Scheduler (Synology Only)
 
+<div id="Automatic_Scheduled_Execution_of_Script_every_10-15_minutes_syno"></div>
+
 ### 6.2.1.) Configuration of Synology Task Scheduler (For Synology Systems)
 
 Once the script is on the NAS, go to Control Panel --> Task Scheduler
@@ -403,6 +433,8 @@ Go to the "Task Settings" tab. in the "user defined script" area at the bottom e
 
 Click OK. Enter your account password to confirm that the task will use root
 
+<div id="Automatic_Scheduled_Execution_of_Script_every_10-15_minutes"></div>
+
 ### 6.2.2.) Configuration of crontab (for Non-Synology Systems)
 
 Edit the crontab at /etc/crontab using ```vi /etc/crontab``` 
@@ -414,6 +446,8 @@ This will execute the script at minute 0, 15, 30, and 45 of every hour, of every
 
 details on crontab can be found here: https://man7.org/linux/man-pages/man5/crontab.5.html and here https://crontab.guru/
 
+<div id="Configuration_smart_scheduler_config"></div>
+
 ### 6.3.) Configuration "smart_scheduler_config.php"
 
 TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
@@ -422,6 +456,7 @@ TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
 TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
 TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
 
+<div id="Configuration_of_http_user_permissions"></div>
 
 ### 6.4.) Configuration of "http" user permissions (Synology Only)
 
@@ -437,6 +472,8 @@ by default the Synology user "http" that web station uses does not have write pe
 <img src="https://raw.githubusercontent.com/wallacebrf/synology_snmp/main/Images/http_user1.png" alt="1313">
 <img src="https://raw.githubusercontent.com/wallacebrf/synology_snmp/main/Images/http_user2.png" alt="1314">
 <img src="https://raw.githubusercontent.com/wallacebrf/synology_snmp/main/Images/http_user3.png" alt="1314">
+
+<div id="Configuration_of_msmtp_email_settings_for_Non-Synology_systems"></div>
 
 ### 6.5.) Configuration of msmtp email settings for Non-Synology systems
 
@@ -477,6 +514,8 @@ tls_trust_file /usr/builtin/etc/msmtp/ca-certificates.crt
 #account default: user@gmail.com
 ```
 Ensure the SMTP server is configured for the server of your choice, and ensure the ```account default``` email address is properly configured.
+
+<div id="Synology_Web-Station_setup"></div>
 
 ### 6.6.) Synology Web-Station setup
 If using a Synology NAS and wish to utilize the PHP web-interface, follow these instructions to setup Web Station
@@ -555,6 +594,8 @@ If using a Synology NAS and wish to utilize the PHP web-interface, follow these 
   
    j.) click create
 
+<div id="Asustor_web_portal_setup"></div>
+
 ### 6.7.) Asustor web portal setup
 If using an Austor NAS and wish to utilize the PHP web-interface, follow these instructions to setup the web portal
 
@@ -596,6 +637,8 @@ Note: Replace <ip-address> with your Asustor's IP Address or Hostname.
 
 ### 6.8.) Configuration of required user level settings
 
+<div id="Configuration_through_PHP_Web-Interface"></div>
+
 ### 6.8.1.) Configuration through PHP Web-Interface
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/15.png" alt="Logo">
@@ -615,6 +658,8 @@ Note: Replace <ip-address> with your Asustor's IP Address or Hostname.
 7. Give a name to your system so the email notifications can signify which system the messages are from. 
 
 8. Chose to use either Synology Mail Plus Server (if it is installed and available) or use the integrated Synology SNMP notifications settings found under ```Control Panel --> Notification```
+
+<div id="Configuration_without_using_a_web-interface"></div>
 
 ### 6.8.2.) Configuration without using a web-interface
 In the event use of this script is desired without using the web-interface, the script settings can be configured using a text editor. 
@@ -639,7 +684,8 @@ If the date/time of the next scan needs to be changed, use the following web sit
 
 edit the following file in a text editor: ```/path_to_server_root/synology_smart/config/next_scan_time.txt```
 
-<!-- CONTRIBUTING -->
+<div id="Contributing"></div>
+
 ## 7.) Contributing
 
 Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
@@ -651,18 +697,16 @@ Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+<div id="License"></div>
 
-
-<!-- LICENSE -->
 ## 8.) License
 
 This is free to use code, use as you wish
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+<div id="Contact"></div>
 
-
-<!-- CONTACT -->
 ## 9.) Contact
 
 Your Name - Brian Wallace - wallacebrf@hotmail.com
@@ -671,9 +715,8 @@ Project Link: [https://github.com/wallacebrf/Synology-SMART-test-scheduler)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+<div id="Acknowledgments"></div>
 
-
-<!-- ACKNOWLEDGMENTS -->
 ## 10.) Acknowledgments
 
 https://github.com/007revad 	For the code to determine the drive number of a Synology disk. Also for suggesting the logo image. 
