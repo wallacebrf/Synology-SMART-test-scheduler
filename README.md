@@ -520,79 +520,79 @@ Ensure the SMTP server is configured for the server of your choice, and ensure t
 ### 6.6.) Synology Web-Station setup
 If using a Synology NAS and wish to utilize the PHP web-interface, follow these instructions to setup Web Station
 
-1.) ensure web station and PHP 8.2 are installed in package center
+1. Ensure Web Station and PHP 8.2 are installed in Package Center
 
-2.) inside web-station go to "Script Language Settings --> PHP tab --> Create
-     
-   a.) Enter profile name "core"
-     
-   b.) Enter Description as "core"
-    
-   c.) choose PHP 8.2 for PHP version
-     
-   d.) click "enable display_errors to display PHP error messages
-    
-   e.) keep "customize PHO open_basedir as "default"
-     
-   f.) click next
-    
-   g.) enable all extensions
-    
-   h.) click next
-    
-   i.) leave as default
-    
-   j.) click next
-    
-   k.) leave as default
-    
-   l.) click next
-    
-   m.) review the settings and click "create"
+2. Inside Web Station go to "Script Language Settings --> PHP tab --> Create"
 
-3.) inside web-station to to "Web Service" --> create
-   
-   a.) choose "native script language website"
-   
-   b.) under service, click PHP 8.2 and choose the "core" PHP profile previously created
-   
-   c.) click next
-   
-   d.) enter a name "core"
-   
-   e.) Enter Description as "core"
-  
-   f.) choose document root as "/volume1/web" shared folder
-  
-   g.) for HTTP back-end-server click "Nginx"
-  
-   h.) leave timeout settings as default
-   
-   i.) click next
-  
-   j.) review the settings, and click "create"
+    a. Enter Profile name as "core"
+     
+    b. Enter Description as "core"
+    
+    c. Choose PHP 8.2 for PHP version
+     
+    d. Click "Enable display_errors to display PHP error messages"
+    
+    e. Keep "Customize PHO open_basedir" as "default"
+     
+    f. Click Next
+    
+    g. Enable all extensions
+    
+    h. Click Next
+    
+    i. Leave as default
+    
+    j. Click Next
+    
+    k. Leave as default
+    
+    l. Click Next
+    
+    m. Review the settings and click "Create"
 
-4.) inside web-station to to "Web Portal--> create
-  
-   a.) choose the "web service portal"
-  
-   b.) under "service" choose the "core" service we created previously
-  
-   c.) under portal type leave as "name based"
-  
-   d.) choose a hostname, like "home". This should be same value as the NAS's name
+3. Inside Web Station go to "Web Service" --> Create"
    
-   e.) choose ports. suggest standard web-server ports 80/443
+    a. Choose "Native script language website"
    
-   f.) under HTTPS settings, choose to enable "HSTS"
+    b. Under Service, click PHP 8.2 and choose the "core" PHP profile previously created
    
-   g.) under "access control profile" leave as "not configured"
+    c. Click "Next"
    
-   h.) under "error page profile" choose "default error page profile"
+    d. Enter the Name "core"
+   
+    e. Enter Description as "core"
   
-   i.) enable "enable access logs"
+    f. Choose Document root as "/volume1/web" shared folder
   
-   j.) click create
+    g. For HTTP back-end-server click "Nginx"
+  
+    h. Leave timeout settings as default
+   
+    i. Click "Next"
+  
+    j. Review the settings, and click "Create"
+
+4. Inside Web Station to to "Web Portal --> Create"
+  
+    a. Choose the "Web service portal"
+  
+    b. Under "Service" choose the "core" service we created previously
+  
+    c. Under Portal type leave as "Name-based"
+  
+    d. Choose a Hostname, like "home". This should be same value as the NAS's name
+   
+    e. Choose ports. Suggest standard web-server ports 80/443
+   
+    f. Under HTTPS settings, choose to enable "HSTS"
+   
+    g. Under "Access control profile" leave as "Not configured"
+   
+    h. Under "Error page profile" choose "Default error page profile"
+  
+    i. Enable "Enable access logs"
+  
+    j. Click Create
 
 <div id="Asustor_web_portal_setup"></div>
 
@@ -630,8 +630,8 @@ If using an Austor NAS and wish to utilize the PHP web-interface, follow these i
 15. Click OK.
 
 You can now access the Synology-SMART-scheduler webui on either:
-- https://<ip-address>/synology_smart/smart_scheduler_config.php
-- http://<ip-address>/synology_smart/smart_scheduler_config.php
+- `https://<ip-address>/synology_smart/smart_scheduler_config.php`
+- `http://<ip-address>/synology_smart/smart_scheduler_config.php`
 
 Note: Replace <ip-address> with your Asustor's IP Address or Hostname.
 
