@@ -1,5 +1,5 @@
 <?php
-//Version 11/12/2024
+//Version 11/17/2024
 //By Brian Wallace
 //Note Ensure the location of the configuration file matches the values in the synology_SMART_control.sh script 
 /*This web administration page allows for the configuration of all settings used in the synology_SMART_control.sh script file
@@ -451,9 +451,11 @@ print "					</table></fieldset>
 print "						<td align=\"center\"><b>Disk Name</b></td>
 							<td align=\"center\"><b>Cancel Test?</b></td>
 							<td align=\"center\"><b>Manual Start Test?</b></td>
-							<td align=\"center\"><b>Test Duration (est</b>)</td>
+							<td align=\"center\"><b>Extended Test Duration (est</b>)</td>
+							<td align=\"center\"><b>Short Test Duration (est</b>)</td>
 						</tr>";
 						for ($x = 0; $x < $number_drives; $x++) {
+							$drive_duration_explode = explode(",", $drive_test_duration[$x]);
 							print "<tr>";
 							if ($syno_check == 1){
 								print "<td align=\"center\">".$drive_slot[$x]."</td>";
@@ -464,6 +466,7 @@ print "						<td align=\"center\"><b>Disk Name</b></td>
 											$test_started = substr(file_get_contents("".$script_location."/temp/".str_replace("/dev/", "", $drive_name[$x]).".txt"), 0, 10);
 											print "<td align=\"center\"><input type=\"checkbox\" name=\"disk_".$x."_cancel\" value=\"1\"></td>
 													<td align=\"center\">Test Started ".$test_started."</td>
+													<td></td>
 													<td></td>";
 								}else{
 										print "<td align=\"center\">No Active Test</td>
@@ -474,10 +477,12 @@ print "						<td align=\"center\"><b>Disk Name</b></td>
 												<option value=\"2\">Short Test</option>
 											</select>
 										</td>
-										<td align=\"center\">".$drive_test_duration[$x]."</td>";					
+										<td align=\"center\">".$drive_duration_explode[0]."</td>
+										<td align=\"center\">".$drive_duration_explode[1]."</td>";	
+										
 								}
 							}else{
-								print "<td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td>";
+								print "<td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td>";
 							}
 print "						</tr>";	
 						}
