@@ -14,6 +14,7 @@ that file with the above line would include the needed headers, footers, and cal
 ///////////////////////////////////////////////////
 //User Defined Variables
 ///////////////////////////////////////////////////
+error_reporting(E_NOTICE);
 $script_location="/volume1/web/synology_smart";
 $use_login_sessions=false; //set to false if not using user login sessions
 $form_submittal_destination="smart_scheduler_config.php";
@@ -137,7 +138,7 @@ if($use_login_sessions){
 }
 
 $config_file="".$config_file_location."/".$config_file_name."";
-error_reporting(E_NOTICE);
+
 include $_SERVER['DOCUMENT_ROOT']."/synology_smart/functions.php";
 
 //define empty variables
