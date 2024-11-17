@@ -119,6 +119,10 @@ This script along with the associated web-interface will allow for:
 
 #6.) See the "live" status of SMART testing.* 
 
+#7.) The script will not allow scheduled SMART tests to execute while either BTRFS or MDADM RAID scrubbing are active to prevent too much load being applied to disks and systenm resources
+
+#8.) Support for USB disk SMART testing. Disks do not need to be visible under Synology Storage Manager
+
 *NOTE: As this script must be executed to get updated "live" smart status, start or stop tests, the rate in which the "live" data is refreshed, or how quickly a SMART test is actually executed once a manual test is started or cancelled, depends on how often the script is executed in Task Scheduler. It is recommended to have the script execute every 15 minutes. As a result, it can take UP TO 15 minutes (in this example) before the script can respond to commands. 
 
 
