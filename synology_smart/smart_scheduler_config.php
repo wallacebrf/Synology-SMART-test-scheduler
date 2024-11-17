@@ -135,6 +135,8 @@ if($use_login_sessions){
 	}else{
 		$_SESSION["session_start_time"]=$current_time; //refresh session start time
 	}
+}else{
+	session_start();
 }
 
 $config_file="".$config_file_location."/".$config_file_name."";
@@ -191,7 +193,7 @@ if (file_exists("".$script_location."/log/disk_scan_status.txt")) {
 		}
 }
 	
-if(isset($_POST['submit_ups_monitor'])){
+if(isset($_POST['submit_ups_monitor']) && $_POST['randcheck']==$_SESSION['rand']){
 	
 	//process disk testing cancellations and starts 
 	for ($x = 0; $x < $number_drives; $x++) {
@@ -287,7 +289,11 @@ if(isset($_POST['submit_ups_monitor'])){
 		$next_time=date("H:i:s");
 	}
 }
-	   
+
+
+
+$rand=rand();
+$_SESSION['rand']=$rand;	   
 print "<br>
 <fieldset>
 	<legend>
@@ -488,7 +494,7 @@ print "						</tr>";
 						}
 						
 					
-print "				</table></fieldset>	<center><input type=\"submit\" name=\"submit_ups_monitor\" value=\"Submit\" /></center>
+print "				</table></fieldset>	<center><input type=\"hidden\" value=\"".$rand."\" name=\"randcheck\" /><input type=\"submit\" name=\"submit_ups_monitor\" value=\"Submit\" /></center>
 				</form>
 				<fieldset>
 					<legend>
