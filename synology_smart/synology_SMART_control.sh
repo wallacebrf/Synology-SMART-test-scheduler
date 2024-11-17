@@ -1,10 +1,10 @@
 #!/bin/bash
 # shellcheck disable=SC2129,SC2155,SC2004,SC2034,SC2207,SC2001
 
-version="version 1.6 dated 11/12/2024"
+version="version 1.7 dated 11/17/2024"
 #By Brian Wallace
 
-echo "$version"
+echo -e "Script Version: $version\n\n"
 
 #Contributor and beta tester: Dave Russell "007revad" https://github.com/007revad
 #	--> Adder of USB support
@@ -271,12 +271,73 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 #Start actual script if the script is enabled in the web-interface
 ##################################################################################################################
 	if [[ $script_enable -eq 1 ]]; then
+	
+		scrubbing_active=0
 
 		time_hour=$(date +%H)
 		time_min=$(date +%M)
 		now_date=$(date +"%T")
 		current_time=$( date +%s )
 		manual_test_refresh_tracker=0
+		
+		###############################################
+		#getting list of mdraid devices
+		###############################################
+		raid_device=$(mdadm --query --detail /dev/md* | grep /dev/md)
+		raid_device=(`echo $raid_device | sed 's/:/\n/g'`) #make an array of the results delineated by a :
+		num_raid_devices=${#raid_device[@]}
+
+
+		###############################################
+		#getting list of BTRFS volumes
+		###############################################
+		btrfs_volumes=$(btrfs filesystem show | grep /dev*)
+			#split the data into an array
+			SAVEIFS=$IFS   # Save current IFS (Internal Field Separator)
+			IFS=$'\n'      # Change IFS to newline char
+			btrfs_volumes=($btrfs_volumes) # split the `names` string into an array by the same name
+			IFS=$SAVEIFS   # Restore original IFS
+
+		num_btrfs_volumes=${#btrfs_volumes[@]}
+		
+		
+		###############################################
+		#see if any of the BTRFS volumes are scrubbing or not
+		#scheduled SMART tests will be postponed if scrubbing is active
+		###############################################
+		xx=0
+		for xx in "${!btrfs_volumes[@]}"; do
+		
+			#need to convert the "/dev/mapper/cachedev_x" device name to a volume name like "/volume1"
+			volume_number=$(df | grep ${btrfs_volumes[$xx]#*path })
+			#returns: /dev/mapper/cachedev_0   14981718344  5599142460  9382575884  38% /volume1
+			volume_number=${volume_number#*% } #only keep everything after the "% " to keep only volume number
+			
+			volume_details=$(btrfs scrub status -d -R ${btrfs_volumes[$xx]#*path }) #get BTRFS status details
+			volume_details=$(echo $volume_details | grep -E -A 2 "started at" | grep "running for") #search the BTRFS status for the word "running for" as that is only present if scrubbing is active
+			if [[ $volume_details == "" ]]; then
+				echo -e "$volume_number is not actively scrubbing\n"
+			else 
+				scrubbing_active=1
+				echo -e "$volume_number is currently scrubbing\n"
+			fi
+		done
+		
+		
+		###############################################
+		#see if any of the RAID volumes are scrubbing or not
+		#scheduled SMART tests will be postponed if scrubbing is active
+		###############################################
+		xx=0
+		for xx in "${!raid_device[@]}"; do
+			volume_details=$(grep -E -A 2 ${raid_device[$xx]#*/dev/} /proc/mdstat | grep "finish=") #get mdRAID status, and search for the text "finish=" which is only found if a scrub is active
+			if [[ $volume_details == "" ]]; then #if no scrubbing is active, then the grep commands will return no text
+				echo -e "RAID device \"${raid_device[$xx]#*/dev/}\" is not performing scrubbing\n"
+			else
+				scrubbing_active=1
+				echo -e "RAID device \"${raid_device[$xx]#*/dev/}\" is currently scrubbing\n"
+			fi
+		done
 		
 		##################################################################################################################
 		#Get listing of all installed SATA drives in the system
@@ -336,7 +397,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		disk_cancelation_array=()
 		disk_drive_slot_array=()
 		disk_unit_location_array=()
-		disk_extended_test_duration_array=()
+		disk_test_duration_array=()
 		disk_smart_enabled_array=()
 		disk_names=()
 		
@@ -344,7 +405,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		if [[ -e /proc/sys/kernel/syno_hw_version ]]; then
 			syno_check=$(cat /proc/sys/kernel/syno_hw_version 2>/dev/null)
 		fi
-			
+
 		#now we can loop through all the available disks to gather all the needed SMART data for each disk
 		xx=0
 		for xx in "${!valid_array[@]}"; do
@@ -387,7 +448,12 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			fi
 			
 			#extract SMART's estimated extended test duration
-			disk_extended_test_duration_array+=("$(echo "$raw_data" | grep -A 1 "Extended self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)")
+			long_duration=$(echo "$raw_data" | grep -A 1 "Extended self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)
+			
+			#extract SMART's estimated extended test duration
+			short_duration=$(echo "$raw_data" | grep -A 1 "Short self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)
+			
+			disk_test_duration_array+=("$long_duration,$short_duration")
 			
 			#get Synology drive slot details (if the system is a Synology)
 			if [[ "$syno_check" ]]; then
@@ -440,7 +506,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					echo -n "$now" > "$log_dir/disk_scan_status.txt"
 				fi
 				
-				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_extended_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 			else
 				#no active test is occurring on the drive
 				if [[ $xx -eq 0 ]]; then
@@ -448,7 +514,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					echo -n "$now" > "$log_dir/disk_scan_status.txt"
 				fi
 				
-				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_extended_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 				disk_smart_status_array[$xx]=0
 				disk_smart_percent_array[$xx]=0
 			fi
@@ -460,6 +526,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		##################################################################################################################
 		if ls "$temp_dir/manual_start"* 1> /dev/null 2>&1; then		#check to see if any drives have been manually started
 			echo -e "User manually executed SMART test is active, skipping the schedule for now until test is complete\n\n\n"
+			next_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)													#since manual tests are active, we want to hold off on performing scheduled tests, so purposefully add delay time to the time
+		elif [[ $scrubbing_active == 1 ]]; then
+			echo -e "One or more scrubbing activities are active. Scheduled SMART tests will be postponed until all scrubbing is complete\n\n\n"
 			next_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)													#since manual tests are active, we want to hold off on performing scheduled tests, so purposefully add delay time to the time
 		else
 			
@@ -767,7 +836,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					time_diff=$(( $current_time - $next_scan_time ))							#calculate if it is time to perform the next scan
 					if [[ $time_diff -gt 0 ]]; then
 					
-						#time is up!, we need to start the next scheudled test
+						#time is up!, we need to start the next scheduled test
 					
 						#check to see if any scans are already active on a disk
 						if [[ ${disk_smart_status_array[$xx]} -eq 1 ]]; then
@@ -1127,7 +1196,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			disk_cancelation_array=()
 			disk_drive_slot_array=()
 			disk_unit_location_array=()
-			disk_extended_test_duration_array=()
+			disk_test_duration_array=()
 			disk_smart_enabled_array=()
 			disk_names=()
 			
@@ -1171,7 +1240,12 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				fi
 				
 				#extract SMART's estimated extended test duration
-				disk_extended_test_duration_array+=("$(echo "$raw_data" | grep -A 1 "Extended self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)")
+				long_duration=$(echo "$raw_data" | grep -A 1 "Extended self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)
+			
+				#extract SMART's estimated extended test duration
+				short_duration=$(echo "$raw_data" | grep -A 1 "Short self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)
+			
+				disk_test_duration_array+=("$long_duration,$short_duration")
 				
 				#get Synology drive slot details (if the system is a Synology)
 				if [[ "$syno_check" ]]; then
@@ -1211,14 +1285,14 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						echo -n "$now" > "$log_dir/disk_scan_status.txt"
 					fi
 					
-					echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_extended_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+					echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 				else
 					if [[ $xx -eq 0 ]]; then
 						now=$(date +"%D %T")
 						echo -n "$now" > "$log_dir/disk_scan_status.txt"
 					fi
 					
-					echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_extended_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+					echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 				fi
 			done
 		fi
