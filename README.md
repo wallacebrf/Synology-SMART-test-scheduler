@@ -454,11 +454,19 @@ details on crontab can be found here: https://man7.org/linux/man-pages/man5/cron
 
 ### 6.3.) Configuration "smart_scheduler_config.php"
 
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
+The file ```smart_scheduler_config.php``` has three user configurable parameters:
+
+```
+$script_location="/volume1/web/synology_smart";
+$use_login_sessions=false; //set to false if not using user login sessions
+$form_submittal_destination="smart_scheduler_config.php";
+```
+
+ensure ```$script_location="/volume1/web/synology_smart";``` matches where the script files are located on your machine
+
+if your PHP web server uses log-in sessions and user names, change ```$use_login_sessions=false;``` to true
+
+if the PHP configuration file is included within a larger PHP file using the ```include_once()``` command, then change the line ```$form_submittal_destination="smart_scheduler_config.php";``` to the correct address of the file calling out this config file. 
 
 <div id="Configuration_of_http_user_permissions"></div>
 
