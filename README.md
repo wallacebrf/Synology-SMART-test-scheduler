@@ -119,6 +119,10 @@ This script along with the associated web-interface will allow for:
 
 #6.) See the "live" status of SMART testing.* 
 
+#7.) The script will not allow scheduled SMART tests to execute while either BTRFS or MDADM RAID scrubbing are active to prevent too much load being applied to disks and systenm resources
+
+#8.) Support for USB disk SMART testing. Disks do not need to be visible under Synology Storage Manager
+
 *NOTE: As this script must be executed to get updated "live" smart status, start or stop tests, the rate in which the "live" data is refreshed, or how quickly a SMART test is actually executed once a manual test is started or cancelled, depends on how often the script is executed in Task Scheduler. It is recommended to have the script execute every 15 minutes. As a result, it can take UP TO 15 minutes (in this example) before the script can respond to commands. 
 
 
@@ -450,11 +454,19 @@ details on crontab can be found here: https://man7.org/linux/man-pages/man5/cron
 
 ### 6.3.) Configuration "smart_scheduler_config.php"
 
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
-TO BE COMPLETED		TO BE COMPLETED		TO BE COMPLETED
+The file ```smart_scheduler_config.php``` has three user configurable parameters:
+
+```
+$script_location="/volume1/web/synology_smart";
+$use_login_sessions=false; //set to false if not using user login sessions
+$form_submittal_destination="smart_scheduler_config.php";
+```
+
+ensure ```$script_location="/volume1/web/synology_smart";``` matches where the script files are located on your machine
+
+if your PHP web server uses log-in sessions and user names, change ```$use_login_sessions=false;``` to true
+
+if the PHP configuration file is included within a larger PHP file using the ```include_once()``` command, then change the line ```$form_submittal_destination="smart_scheduler_config.php";``` to the correct address of the file calling out this config file. 
 
 <div id="Configuration_of_http_user_permissions"></div>
 

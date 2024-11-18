@@ -1,5 +1,5 @@
 <?php
-//Version 11/12/2024
+//Version 11/17/2024
 //By Brian Wallace
 //Note Ensure the location of the configuration file matches the values in the synology_SMART_control.sh script 
 /*This web administration page allows for the configuration of all settings used in the synology_SMART_control.sh script file
@@ -14,6 +14,7 @@ that file with the above line would include the needed headers, footers, and cal
 ///////////////////////////////////////////////////
 //User Defined Variables
 ///////////////////////////////////////////////////
+error_reporting(E_NOTICE);
 $script_location="/volume1/web/synology_smart";
 $use_login_sessions=false; //set to false if not using user login sessions
 $form_submittal_destination="smart_scheduler_config.php";
@@ -134,10 +135,12 @@ if($use_login_sessions){
 	}else{
 		$_SESSION["session_start_time"]=$current_time; //refresh session start time
 	}
+}else{
+	session_start();
 }
 
 $config_file="".$config_file_location."/".$config_file_name."";
-error_reporting(E_NOTICE);
+
 include $_SERVER['DOCUMENT_ROOT']."/synology_smart/functions.php";
 
 //define empty variables
@@ -190,7 +193,7 @@ if (file_exists("".$script_location."/log/disk_scan_status.txt")) {
 		}
 }
 	
-if(isset($_POST['submit_ups_monitor'])){
+if(isset($_POST['submit_ups_monitor']) && $_POST['randcheck']==$_SESSION['rand']){
 	
 	//process disk testing cancellations and starts 
 	for ($x = 0; $x < $number_drives; $x++) {
@@ -286,7 +289,11 @@ if(isset($_POST['submit_ups_monitor'])){
 		$next_time=date("H:i:s");
 	}
 }
-	   
+
+
+
+$rand=rand();
+$_SESSION['rand']=$rand;	   
 print "<br>
 <fieldset>
 	<legend>
@@ -450,9 +457,11 @@ print "					</table></fieldset>
 print "						<td align=\"center\"><b>Disk Name</b></td>
 							<td align=\"center\"><b>Cancel Test?</b></td>
 							<td align=\"center\"><b>Manual Start Test?</b></td>
-							<td align=\"center\"><b>Test Duration (est</b>)</td>
+							<td align=\"center\"><b>Extended Test Duration (est</b>)</td>
+							<td align=\"center\"><b>Short Test Duration (est</b>)</td>
 						</tr>";
 						for ($x = 0; $x < $number_drives; $x++) {
+							$drive_duration_explode = explode(",", $drive_test_duration[$x]);
 							print "<tr>";
 							if ($syno_check == 1){
 								print "<td align=\"center\">".$drive_slot[$x]."</td>";
@@ -463,6 +472,7 @@ print "						<td align=\"center\"><b>Disk Name</b></td>
 											$test_started = substr(file_get_contents("".$script_location."/temp/".str_replace("/dev/", "", $drive_name[$x]).".txt"), 0, 10);
 											print "<td align=\"center\"><input type=\"checkbox\" name=\"disk_".$x."_cancel\" value=\"1\"></td>
 													<td align=\"center\">Test Started ".$test_started."</td>
+													<td></td>
 													<td></td>";
 								}else{
 										print "<td align=\"center\">No Active Test</td>
@@ -473,16 +483,18 @@ print "						<td align=\"center\"><b>Disk Name</b></td>
 												<option value=\"2\">Short Test</option>
 											</select>
 										</td>
-										<td align=\"center\">".$drive_test_duration[$x]."</td>";					
+										<td align=\"center\">".$drive_duration_explode[0]."</td>
+										<td align=\"center\">".$drive_duration_explode[1]."</td>";	
+										
 								}
 							}else{
-								print "<td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td>";
+								print "<td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td>";
 							}
 print "						</tr>";	
 						}
 						
 					
-print "				</table></fieldset>	<center><input type=\"submit\" name=\"submit_ups_monitor\" value=\"Submit\" /></center>
+print "				</table></fieldset>	<center><input type=\"hidden\" value=\"".$rand."\" name=\"randcheck\" /><input type=\"submit\" name=\"submit_ups_monitor\" value=\"Submit\" /></center>
 				</form>
 				<fieldset>
 					<legend>
