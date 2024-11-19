@@ -1,5 +1,5 @@
 <?php
-$version="Version 1.8 Dated 11/18/2024";
+$version="Version 1.9 Dated 11/19/2024";
 //By Brian Wallace
 //Note Ensure the location of the configuration file matches the values in the synology_SMART_control.sh script 
 /*This web administration page allows for the configuration of all settings used in the synology_SMART_control.sh script file
@@ -318,7 +318,7 @@ print "<br>
 			<td>
 				<table border=\"0\">
 					<tr>
-						<td><img src=\"$logo\" alt=\"Logo\" width=\"64\" height=\"64\"></td>
+						<td><img src=\"".$logo."\" alt=\"Logo\" width=\"64\" height=\"64\"></td>
 						<td>";
 							if ($script_enable==1){
 								print "<font color=\"green\"><h3>Script Status: Active</h3></font>";
