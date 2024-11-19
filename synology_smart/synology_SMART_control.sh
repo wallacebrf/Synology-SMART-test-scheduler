@@ -246,7 +246,6 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 	from_email_address=${explode[3]}
 	to_email_address=${explode[4]}
 	next_scan_type=${explode[5]} #1=all drives, 0 = one drive at a time
-	#next_scan_type=0
 	NAS_name=${explode[6]}
 	use_send_mail=${explode[7]}
 	
@@ -278,7 +277,6 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		time_min=$(date +%M)
 		now_date=$(date +"%T")
 		current_time=$( date +%s )
-	#	manual_test_refresh_tracker=0
 		
 		###############################################
 		#getting list of mdraid devices
@@ -499,22 +497,8 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				#extract the percent complete
 				disk_smart_percent_array[$xx]=$(( 100 - $(echo "$disk_smart_status" | grep -E -o ".{0,2}%" | head -c-2) ))
 				
-	#			#save the current disk results appended to the file. this data is used by the web-interface to display current disks and their live SMART status
-	#			#1.) Disk Name, 2.)Disk Model, 3.) Disk Serial, 4.) test active/inactive 5.) test percent complete 6.) pass/fail status 7.) Disk capacity 8.) estimated extended test duration, 9.) is SMART testing enabled on the disk?
-	#			if [[ $xx -eq 0 ]]; then
-	#				now=$(date +"%D %T")
-	#				echo -n "$now" > "$log_dir/disk_scan_status.txt"
-	#			fi
-	#			
-	#			echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 			else
 				#no active test is occurring on the drive
-	#			if [[ $xx -eq 0 ]]; then
-	#				now=$(date +"%D %T")
-	#				echo -n "$now" > "$log_dir/disk_scan_status.txt"
-	#			fi
-	#			
-	#			echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
 				disk_smart_status_array[$xx]=0
 				disk_smart_percent_array[$xx]=0
 			fi
@@ -581,7 +565,7 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				fi
 			else
 				if [ -r "$config_file_location/next_scan_time.txt" ]; then
-				#file is available and readable
+					#file is available and readable
 					read -r next_scan_time < "$config_file_location/next_scan_time.txt"
 				else
 					#file is missing, let's write to disk some default values. these values can then be adjusted in the web-interface
@@ -714,8 +698,6 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					
 					smartctl -d sat -a -X "${disk_names[$xx]}" 2>/dev/null
 					
-	#				manual_test_refresh_tracker=1
-					
 					if [ -r "$temp_dir/cancel_$disk_temp_file_name" ]; then
 						rm "$temp_dir/cancel_$disk_temp_file_name"
 					fi
@@ -797,11 +779,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						#command the test to start
 						if [ -r "$temp_dir/start_long_$disk_temp_file_name" ]; then
 							smartctl -d sat -a -t long "${disk_names[$xx]}" 2>/dev/null
-	#						manual_test_refresh_tracker=1
 							rm "$temp_dir/start_long_$disk_temp_file_name"
 						elif [ -r "$temp_dir/start_short_$disk_temp_file_name" ]; then
 							smartctl -d sat -a -t short "${disk_names[$xx]}" 2>/dev/null
-	#						manual_test_refresh_tracker=1
 							rm "$temp_dir/start_short_$disk_temp_file_name"
 						fi
 						
@@ -1241,116 +1221,114 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		##################################################################################################################
 		##perform a refresh of the SMART data saved to the web-interface tracking file so any changes in test status are reflected in the web-interface as soon as possible
 		##################################################################################################################
-	#	if [[ $manual_test_refresh_tracker == 1 ]]; then
-			disk_smart_status_array=()
-			disk_smart_percent_array=()
-			disk_smart_model_array=()
-			disk_smart_serial_array=()
-			disk_smart_pass_fail_array=()
-			disk_capacity_array=()
-			disk_cancelation_array=()
-			disk_drive_slot_array=()
-			disk_unit_location_array=()
-			disk_test_duration_array=()
-			disk_smart_enabled_array=()
-			disk_names=()
+		disk_smart_status_array=()
+		disk_smart_percent_array=()
+		disk_smart_model_array=()
+		disk_smart_serial_array=()
+		disk_smart_pass_fail_array=()
+		disk_capacity_array=()
+		disk_cancelation_array=()
+		disk_drive_slot_array=()
+		disk_unit_location_array=()
+		disk_test_duration_array=()
+		disk_smart_enabled_array=()
+		disk_names=()
+		
+		#now we can loop through all the available disks to gather all the needed SMART data for each disk
+		xx=0
+		for xx in "${!valid_array[@]}"; do
 			
-			#now we can loop through all the available disks to gather all the needed SMART data for each disk
-			xx=0
-			for xx in "${!valid_array[@]}"; do
-				
-				#extract just the "/dev/sata1" or just the "/dev/sda" parts of the results, get rid of everything else
-				disk="${valid_array[$xx]}"
-				disk="${disk##*Disk }" 		#get rid of "Disk " at the beginning of the string
-				disk="${disk%:*}" 			#get rid of everything after the first colon which is after the name of the disk such as "/dev/sata1:"
-				disk_names+=("$disk")
-				
-				#use smartctl to get current SMART details from the drives
-				raw_data=$(smartctl -a -d sat "$disk" 2>/dev/null)
-				
-				#extract the status, IE is s SMART test active or not?
-				disk_smart_status=$(echo "$raw_data" | grep -A 1 "Self-test execution status:" | tr '\n' ' ') #get SMART status for the disk
-				
-				#extract the model
-				disk_model=$(echo "$raw_data" | grep "Device Model:" | xargs) 					#get just the line containing the model number
-				disk_smart_model_array+=("${disk_model##* }") 									#remove the text before the actual model number
-				
-				#extract the serial number
-				disk_serial=$(echo "$raw_data" | grep "Serial Number:" | xargs) 				#get just the line containing the serial number
-				disk_smart_serial_array+=("${disk_serial##* }")									#remove the text before the actual serial number
-				
-				#extract PASS/FAIL status
-				disk_status=$(echo "$raw_data" | grep "SMART overall-health self-assessment test result:" | xargs) 				#get just the line containing the serial number
-				disk_smart_pass_fail_array+=("${disk_status##*: }")								#remove the text before the pass/fail status
-				
-				#extract disk capacity
-				disk_capacity_array+=("$(echo "$raw_data" | grep "User Capacity:")") 				#get just the line containing the serial number
-				
-				#extract if SMART is enabled on the disk or not
-				disk_smart_enabled="$(echo "$raw_data" | grep "SMART support is: Enabled")" 				#get just the line containing the serial number
-				if [[ -z $disk_smart_enabled ]]; then
-					disk_smart_enabled_array+=(0)
-				else
-					disk_smart_enabled_array+=(1)
-				fi
-				
-				#extract SMART's estimated extended test duration
-				long_duration=$(echo "$raw_data" | grep -A 1 "Extended self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)
+			#extract just the "/dev/sata1" or just the "/dev/sda" parts of the results, get rid of everything else
+			disk="${valid_array[$xx]}"
+			disk="${disk##*Disk }" 		#get rid of "Disk " at the beginning of the string
+			disk="${disk%:*}" 			#get rid of everything after the first colon which is after the name of the disk such as "/dev/sata1:"
+			disk_names+=("$disk")
 			
-				#extract SMART's estimated extended test duration
-				short_duration=$(echo "$raw_data" | grep -A 1 "Short self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)
+			#use smartctl to get current SMART details from the drives
+			raw_data=$(smartctl -a -d sat "$disk" 2>/dev/null)
 			
-				disk_test_duration_array+=("$long_duration,$short_duration")
-				
-				#get Synology drive slot details (if the system is a Synology)
-				if [[ "$syno_check" ]]; then
-					disk_drive_slot_array+=("$(synodisk --get_location_form "$disk" | grep 'Disk id' | awk '{print $NF}')")
-					disk_unit_location="$(synodisk --get_location_form "$disk" | grep 'Disk cnridx:' | awk '{print $NF}')"
-					if [[ $disk_unit_location == 0 ]]; then
-						disk_unit_location_array+=("Main Unit")
-					else
-						disk_unit_location_array+=("Expansion Unit $disk_unit_location")
-					fi
-				fi
-				
-				#set disk drive slot and location variable
-				if [[ "$syno_check" ]]; then
-					#is a Synology
-					if [[ $disk =~ "usb" ]] || is_usb "$disk"; then
-						#get usb_name as USB Disk 1 or USB Disk 2 etc (works in DSM 6 and 7)
-						usb_name="$(synousbdisk -info "$(basename "$disk")" | grep -E '^Name:' | cut -d" " -f2-)"
-						disk_drive_slot=";Synology $usb_name"
-					else
-						disk_drive_slot=";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
-					fi
+			#extract the status, IE is s SMART test active or not?
+			disk_smart_status=$(echo "$raw_data" | grep -A 1 "Self-test execution status:" | tr '\n' ' ') #get SMART status for the disk
+			
+			#extract the model
+			disk_model=$(echo "$raw_data" | grep "Device Model:" | xargs) 					#get just the line containing the model number
+			disk_smart_model_array+=("${disk_model##* }") 									#remove the text before the actual model number
+			
+			#extract the serial number
+			disk_serial=$(echo "$raw_data" | grep "Serial Number:" | xargs) 				#get just the line containing the serial number
+			disk_smart_serial_array+=("${disk_serial##* }")									#remove the text before the actual serial number
+			
+			#extract PASS/FAIL status
+			disk_status=$(echo "$raw_data" | grep "SMART overall-health self-assessment test result:" | xargs) 				#get just the line containing the serial number
+			disk_smart_pass_fail_array+=("${disk_status##*: }")								#remove the text before the pass/fail status
+			
+			#extract disk capacity
+			disk_capacity_array+=("$(echo "$raw_data" | grep "User Capacity:")") 				#get just the line containing the serial number
+			
+			#extract if SMART is enabled on the disk or not
+			disk_smart_enabled="$(echo "$raw_data" | grep "SMART support is: Enabled")" 				#get just the line containing the serial number
+			if [[ -z $disk_smart_enabled ]]; then
+				disk_smart_enabled_array+=(0)
+			else
+				disk_smart_enabled_array+=(1)
+			fi
+			
+			#extract SMART's estimated extended test duration
+			long_duration=$(echo "$raw_data" | grep -A 1 "Extended self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)
+		
+			#extract SMART's estimated extended test duration
+			short_duration=$(echo "$raw_data" | grep -A 1 "Short self-test routine" | grep "(" | sed 's/^.\{28\}//' 2>/dev/null)
+		
+			disk_test_duration_array+=("$long_duration,$short_duration")
+			
+			#get Synology drive slot details (if the system is a Synology)
+			if [[ "$syno_check" ]]; then
+				disk_drive_slot_array+=("$(synodisk --get_location_form "$disk" | grep 'Disk id' | awk '{print $NF}')")
+				disk_unit_location="$(synodisk --get_location_form "$disk" | grep 'Disk cnridx:' | awk '{print $NF}')"
+				if [[ $disk_unit_location == 0 ]]; then
+					disk_unit_location_array+=("Main Unit")
 				else
-					disk_drive_slot=";"
+					disk_unit_location_array+=("Expansion Unit $disk_unit_location")
+				fi
+			fi
+			
+			#set disk drive slot and location variable
+			if [[ "$syno_check" ]]; then
+				#is a Synology
+				if [[ $disk =~ "usb" ]] || is_usb "$disk"; then
+					#get usb_name as USB Disk 1 or USB Disk 2 etc (works in DSM 6 and 7)
+					usb_name="$(synousbdisk -info "$(basename "$disk")" | grep -E '^Name:' | cut -d" " -f2-)"
+					disk_drive_slot=";Synology $usb_name"
+				else
+					disk_drive_slot=";Synology Drive Slot: ${disk_drive_slot_array[$xx]} [${disk_unit_location_array[$xx]}]"
+				fi
+			else
+				disk_drive_slot=";"
+			fi
+			
+			#determine if a SMART test is active or not
+			if [[ $disk_smart_status == *"Self-test routine in progress..."* ]]; then 		#yes a test is active
+				
+				#extract the percent complete
+				disk_smart_percent_array[$xx]=$(( 100 - $(echo "$disk_smart_status" | grep -E -o ".{0,2}%" | head -c-2) ))
+				
+				#save the current disk results appended to the file. this data is used by the web-interface to display current disks and their live SMART status
+				#1.) Disk Name, 2.)Disk Model, 3.) Disk Serial, 4.) test active/inactive 5.) test percent complete 6.) pass/fail status 7.) Disk capacity 8.) estimated extended test duration, 9.) is SMART testing enabled on the disk?
+				if [[ $xx -eq 0 ]]; then
+					now=$(date +"%D %T")
+					echo -n "$now" > "$log_dir/disk_scan_status.txt"
 				fi
 				
-				#determine if a SMART test is active or not
-				if [[ $disk_smart_status == *"Self-test routine in progress..."* ]]; then 		#yes a test is active
-					
-					#extract the percent complete
-					disk_smart_percent_array[$xx]=$(( 100 - $(echo "$disk_smart_status" | grep -E -o ".{0,2}%" | head -c-2) ))
-					
-					#save the current disk results appended to the file. this data is used by the web-interface to display current disks and their live SMART status
-					#1.) Disk Name, 2.)Disk Model, 3.) Disk Serial, 4.) test active/inactive 5.) test percent complete 6.) pass/fail status 7.) Disk capacity 8.) estimated extended test duration, 9.) is SMART testing enabled on the disk?
-					if [[ $xx -eq 0 ]]; then
-						now=$(date +"%D %T")
-						echo -n "$now" > "$log_dir/disk_scan_status.txt"
-					fi
-					
-					echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
-				else
-					if [[ $xx -eq 0 ]]; then
-						now=$(date +"%D %T")
-						echo -n "$now" > "$log_dir/disk_scan_status.txt"
-					fi
-					
-					echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};1;${disk_smart_percent_array[$xx]};${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+			else
+				if [[ $xx -eq 0 ]]; then
+					now=$(date +"%D %T")
+					echo -n "$now" > "$log_dir/disk_scan_status.txt"
 				fi
-			done
-	#	fi
+				
+				echo -n "$disk_drive_slot;$disk;${disk_smart_model_array[$xx]};${disk_smart_serial_array[$xx]};0;0;${disk_smart_pass_fail_array[$xx]};${disk_capacity_array[$xx]};${disk_test_duration_array[$xx]};${disk_smart_enabled_array[$xx]}" >> "$log_dir/disk_scan_status.txt"
+			fi
+		done
 	else
 		echo "script is disabled"
 	fi
