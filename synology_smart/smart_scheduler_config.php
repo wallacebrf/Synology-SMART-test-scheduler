@@ -1,5 +1,5 @@
 <?php
-//Version 11/17/2024
+$version="Version 1.8 Dated 11/18/2024";
 //By Brian Wallace
 //Note Ensure the location of the configuration file matches the values in the synology_SMART_control.sh script 
 /*This web administration page allows for the configuration of all settings used in the synology_SMART_control.sh script file
@@ -19,7 +19,7 @@ $script_location="/volume1/web/synology_smart";
 $use_login_sessions=false; //set to false if not using user login sessions
 $form_submittal_destination="smart_scheduler_config.php";
 $host_name=php_uname('n');
-$page_title="$host_name S.M.A.R.T Scheduler";
+$page_title="".$host_name." S.M.A.R.T Scheduler<br><font size=\"2\">".$version."</font>";
 
 $nas_ip=$_SERVER['SERVER_ADDR'];
 if ($_SERVER['HTTPS'] == 0){
@@ -35,7 +35,6 @@ $home="$prot$nas_ip";
 ///////////////////////////////////////////////////
 $config_file_location="".$script_location."/config";
 $config_file_name="smart_control_config.txt";
-
 
 ///////////////////////////////////////////////////
 //Function to print out and display links to the test history files
@@ -99,6 +98,7 @@ $output .= <<<HERE
 HERE;	
 	return $output;
 }//end function\
+
 
 ///////////////////////////////////////////////////
 //Beginning of configuration page
@@ -193,7 +193,7 @@ if (file_exists("".$script_location."/log/disk_scan_status.txt")) {
 		}
 }
 	
-if(isset($_POST['submit_ups_monitor']) && $_POST['randcheck']==$_SESSION['rand']){
+if(isset($_POST['submit_smart']) && $_POST['randcheck']==$_SESSION['rand']){
 	
 	//process disk testing cancellations and starts 
 	for ($x = 0; $x < $number_drives; $x++) {
@@ -235,7 +235,11 @@ if(isset($_POST['submit_ups_monitor']) && $_POST['randcheck']==$_SESSION['rand']
 	
 	[$next_scan_type, $generic_error] = test_input_processing($_POST['next_scan_type'], "", "checkbox", 0, 0);
 	
-	[$NAS_name, $NAS_name_error] = test_input_processing($_POST['NAS_name'], $pieces[6], "name", 0, 0);
+	if ($_POST['NAS_name'] ==""){
+		$NAS_name=php_uname('n');
+	}else{
+		[$NAS_name, $NAS_name_error] = test_input_processing($_POST['NAS_name'], $pieces[6], "name", 0, 0);
+	}
 	
 	[$use_send_mail, $use_send_mail_error] = test_input_processing($_POST['use_send_mail'], $pieces[7], "numeric", 0, 2);
 	  
@@ -251,6 +255,10 @@ if(isset($_POST['submit_ups_monitor']) && $_POST['randcheck']==$_SESSION['rand']
 	$pieces = explode(" ", date("Y-m-d H:i:s", substr($new_epoc_time, 0, 10)));
 	$next_date=$pieces[0];
 	$next_time=$pieces[1];
+	unset($_POST['submit_smart']);
+	unset($_POST['randcheck']);
+	header("Location: smart_scheduler_config.php");
+    exit;
 		  
 }else{
 	if (file_exists("$config_file")) {
@@ -272,7 +280,7 @@ if(isset($_POST['submit_ups_monitor']) && $_POST['randcheck']==$_SESSION['rand']
 		$from_email_address="email@email.com";
 		$to_email_address="email@email.com";
 		$next_scan_type=1;
-		$NAS_name="NAS Name";
+		$NAS_name=php_uname('n');
 		$use_send_mail=0;
 		$put_contents_string="".$script_enable.",".$next_scan_time_window.",".$enable_email_notifications.",".$from_email_address.",".$to_email_address.",".$next_scan_type.",".$NAS_name.",".$use_send_mail."";
 		  
@@ -297,21 +305,28 @@ $_SESSION['rand']=$rand;
 print "<br>
 <fieldset>
 	<legend>
-		<h3>$page_title</h3>
+		<h3>".$page_title."</h3>
 	</legend>
 	<table border=\"0\">
 		<tr>
-			<td>";
-				if ($script_enable==1){
-					print "<font color=\"green\"><h3>Script Status: Active</h3></font>";
-				}else{
-					print "<font color=\"red\"><h3>Script Status: Inactive</h3></font>";
-				}
-print "		</td>
+			<td>
+				<table border=\"0\">
+					<tr>
+						<td><img src=\"https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/logo.png\" alt=\"Logo\" width=\"64\" height=\"64\"></td>
+						<td>";
+							if ($script_enable==1){
+								print "<font color=\"green\"><h3>Script Status: Active</h3></font>";
+							}else{
+								print "<font color=\"red\"><h3>Script Status: Inactive</h3></font>";
+							}
+print "					</td>
+					</tr>
+				</table>
+			</td>
 		</tr>
 		<tr>
 			<td align=\"left\">
-				<form action=\"$form_submittal_destination\" method=\"post\">
+				<form action=\"".$form_submittal_destination."\" method=\"post\">
 					<fieldset>
 						<legend>
 							<b>General Settings</b>
@@ -321,7 +336,7 @@ print "		</td>
 							print "checked";
 						}
 						print ">Enable Entire Script?</p>
-						<p>System Name: <input type=\"text\" maxlength=\"15\" size=\"15\" name=\"NAS_name\" value=".$NAS_name.">".$NAS_name_error."</p>
+						<p>System Name: <input type=\"text\" maxlength=\"15\" size=\"15\" name=\"NAS_name\" value=".$NAS_name."><font size=\"1\">Leave Blank to Automatically set to System Name/Description</font>".$NAS_name_error."</p>
 					</fieldset>
 					<fieldset>
 						<legend>
@@ -427,17 +442,21 @@ print "								<td align=\"center\">".$drive_name[$x]."</td>
 									<td align=\"center\">".$drive_model[$x]."</td>
 									<td align=\"center\">".$drive_serial[$x]."</td>";
 									if ($drive_test_status[$x] == 1){
-										print "<td align=\"center\">ACTIVE</td>";
+										print "<td align=\"center\"><font color=\"blue\"><h4>ACTIVE</h4></font></td>";
 									}else{
 										print "<td align=\"center\">NOT ACTIVE</td>";
 									}
-print "								<td align=\"center\">".$drive_test_percent[$x]."</td>
-									<td align=\"center\">".$drive_test_pass_fail[$x]."</td>
-									<td align=\"center\">".str_replace("User Capacity: ", "", "$drive_capacity[$x]")."</td>";
+print "								<td align=\"center\">".$drive_test_percent[$x]."</td>";
+									if ($drive_test_pass_fail[$x] == "PASSED"){
+										print "<td align=\"center\"><font color=\"green\">".$drive_test_pass_fail[$x]."</font></td>";
+									}else {
+										print "<td align=\"center\"><font color=\"red\">".$drive_test_pass_fail[$x]."</font></td>";
+									}
+print "								<td align=\"center\">".str_replace("User Capacity: ", "", "$drive_capacity[$x]")."</td>";
 									if ($drive_smart_enabled[$x] == 1){
-										print "<td align=\"center\">ENABLED</td>";
+										print "<td align=\"center\"><font color=\"green\"><h4>ENABLED</h4></font></td>";
 									}else{
-										print "<td align=\"center\">DISABLED</td>";
+										print "<td align=\"center\"><font color=\"red\"><h4>DISABLED</h4></font></td>";
 									}
 print "							</tr>";
 						}
@@ -471,9 +490,9 @@ print "						<td align=\"center\"><b>Disk Name</b></td>
 								if ($drive_test_status[$x] == 1){
 											$test_started = substr(file_get_contents("".$script_location."/temp/".str_replace("/dev/", "", $drive_name[$x]).".txt"), 0, 10);
 											print "<td align=\"center\"><input type=\"checkbox\" name=\"disk_".$x."_cancel\" value=\"1\"></td>
-													<td align=\"center\">Test Started ".$test_started."</td>
-													<td></td>
-													<td></td>";
+													<td align=\"center\"><font color=\"blue\"><h4>Test Started ".$test_started."</h4></font></td>
+													<td bgcolor= \"a7abb0\"></td>
+													<td bgcolor= \"a7abb0\"></td>";
 								}else{
 										print "<td align=\"center\">No Active Test</td>
 										<td align=\"center\">
@@ -488,13 +507,13 @@ print "						<td align=\"center\"><b>Disk Name</b></td>
 										
 								}
 							}else{
-								print "<td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td><td align=\"center\">Unavailable</td>";
+								print "<td align=\"center\"><font color=\"red\"><h4>Unavailable</h4></font></td><td align=\"center\"><font color=\"red\"><h4>Unavailable</h4></font></td><td align=\"center\"><font color=\"red\"><h4>Unavailable</h4></font></td><td align=\"center\"><font color=\"red\"><h4>Unavailable</h4></font></td>";
 							}
 print "						</tr>";	
 						}
 						
 					
-print "				</table></fieldset>	<center><input type=\"hidden\" value=\"".$rand."\" name=\"randcheck\" /><input type=\"submit\" name=\"submit_ups_monitor\" value=\"Submit\" /></center>
+print "				</table></fieldset>	<center><input type=\"hidden\" value=\"".$rand."\" name=\"randcheck\" /><input type=\"submit\" name=\"submit_smart\" value=\"Submit\" /></center>
 				</form>
 				<fieldset>
 					<legend>
