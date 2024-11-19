@@ -49,8 +49,8 @@ Scheduler of Synology SMART tests
 		<li><a href="#disk_test_manually_started_by_the_user">2.10.) Email of disk test manually started by the user</a></li>
 		<li><a href="#Synology_System_with_disks_in_the_main_DS920_unit_and_disks_inside_a_DX517_expansion_unit">2.11.) (Bash View) Synology System with disks in the main DS920 unit and disks inside a DX517 expansion unit</a></li>
 		<li><a href="#USB_drive_started_manually_by_user">2.12.) (Bash View) USB drive (on a Synology DS920) started manually by user</a></li>
-		<li><a href="#Web-Interface_Synology_With_all_drives_currently_testing">2.13.1.) Web-Interface (Synology System) With all drives currently testing</a></li>
-		<li><a href="#Interface_With_all_drives_currently_testing">2.13.2.) Web-Interface (NON-Synology System) With all drives currently testing</a></li>
+		<li><a href="#Web-Interface_Synology_With_all_drives_currently_testing">2.13.1.) Web-Interface (Synology System) With drives currently testing</a></li>
+		<li><a href="#Interface_With_all_drives_currently_testing">2.13.2.) Web-Interface (NON-Synology System) With drives currently testing</a></li>
 	        <li><a href="#Scrubbing_Active_and_Tests_Delayed">2.14.) (Bash View) Scrubbing Active and SMART Tests Delayed</a></li>
 	   </ul>
    </li>
@@ -204,13 +204,13 @@ This script along with the associated web-interface will allow for:
 
 <div id="Web-Interface_Synology_With_all_drives_currently_testing"></div>
 
-### 2.13.1.) Web-Interface (Synology System) With all drives currently testing
+### 2.13.1.) Web-Interface (Synology System) With drives currently testing
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/13.png" alt="Logo">
 
 <div id="Web-Interface_With_all_drives_currently_testing"></div>
 
-### 2.13.2.) Web-Interface (NON-Synology System) With all drives currently testing
+### 2.13.2.) Web-Interface (NON-Synology System) With drives currently testing
 
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/14.png" alt="Logo">
 
