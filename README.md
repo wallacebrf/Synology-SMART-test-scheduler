@@ -535,6 +535,16 @@ tls_trust_file /usr/builtin/etc/msmtp/ca-certificates.crt
 ```
 Ensure the SMTP server is configured for the server of your choice, and ensure the ```account default``` email address is properly configured.
 
+If sending from a gmail account you will need to generate an "app password" and use that instead of your gmail password.
+
+1. Go to https://myaccount.google.com/apppasswords and sign into google.
+2. Enter a name in the form of `appname@computer-name` like `smarttest@ubuntu` and click Create.
+3. In the "Generated app password" popup copy the 16 character app password which will be like `abcd efgh ijkl mnop`
+4. In your msmtprc or config file replace `password passwd` with the 16 character app password (without spaces) like:
+```
+password abcdefghijklmnop
+```
+
 <div id="Synology_Web-Station_setup"></div>
 
 ### 6.6.) Synology Web-Station setup
