@@ -1,7 +1,7 @@
 #!/bin/bash
 # shellcheck disable=SC2129,SC2155,SC2004,SC2034,SC2207,SC2001
 
-version="version 1.8 dated 11/18/2024"
+version="version 1.9 dated 11/19/2024"
 #By Brian Wallace
 
 echo -e "Script Version: $version\n\n"
@@ -217,6 +217,26 @@ function is_usb(){
     else
         return 1
     fi
+}
+
+function scan_time_recalculator(){
+	#next_scan_time_window=${1}
+	#$time_hour=${2}
+	#$time_min=${3}
+	
+	local scan_time=0
+	if [[ ${1} -eq 1 ]]; then
+		scan_time=$(date --date="+1 days ${2}:${3}" +%s)								 						#calculate 1 day from now, convert it to epoch time
+	elif [[ ${1} -eq 2 ]]; then
+		scan_time=$(date --date="+7 days ${2}:${3}" +%s)								 						#calculate 7 day from now, convert it to epoch time
+	elif [[ ${1} -eq 3 ]]; then
+		scan_time=$(date --date="+1 month ${2}:${3}" +%s)								 						#calculate 1 month from now, convert it to epoch time 
+	elif [[ ${1} -eq 4 ]]; then
+		scan_time=$(date --date="+3 month ${2}:${3}" +%s)								 						#calculate 3 month from now, convert it to epoch time
+	elif [[ ${1} -eq 5 ]]; then
+		scan_time=$(date --date="+6 month ${2}:${3}" +%s)								 						#calculate 6 month from now, convert it to epoch time
+	fi
+	echo "$scan_time"
 }
 
 ##################################################################################################################
@@ -515,17 +535,8 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			#we need to save when the next scan will occur in the future since we do not scrubbing to throw off the schedule, but we do not want to overwrite the value currently saved, so we will saved a temp file with the future value which will be saved when all drives are done
 			if [[ ! -r "$temp_dir/manaul_next_scan_time_temp.txt" ]]; then
 			#need to update when the next test will occur since we have now started the current set of tests																		#only want to save the updated date once within the loop
-				if [[ $next_scan_time_window -eq 1 ]]; then
-					future_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)								 						#calculate 1 day from now, convert it to epoch time
-				elif [[ $next_scan_time_window -eq 2 ]]; then
-					future_scan_time=$(date --date="+7 days $time_hour:$time_min" +%s)								 						#calculate 7 day from now, convert it to epoch time
-				elif [[ $next_scan_time_window -eq 3 ]]; then
-					future_scan_time=$(date --date="+1 month $time_hour:$time_min" +%s)								 						#calculate 1 month from now, convert it to epoch time 
-				elif [[ $next_scan_time_window -eq 4 ]]; then
-					future_scan_time=$(date --date="+3 month $time_hour:$time_min" +%s)								 						#calculate 3 month from now, convert it to epoch time
-				elif [[ $next_scan_time_window -eq 5 ]]; then
-					future_scan_time=$(date --date="+6 month $time_hour:$time_min" +%s)								 						#calculate 6 month from now, convert it to epoch time
-				fi
+				
+				future_scan_time=$(scan_time_recalculator $next_scan_time_window $time_hour $time_min)
 				echo -n "$future_scan_time" > "$temp_dir/manaul_next_scan_time_temp.txt"
 			fi
 		elif [[ $scrubbing_active == 1 ]]; then
@@ -535,17 +546,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			#we need to save when the next scan will occur in the future since we do not scrubbing to throw off the schedule, but we do not want to overwrite the value currently saved, so we will saved a temp file with the future value which will be saved when all drives are done
 			if [[ ! -r "$temp_dir/scrubbing_next_scan_time_temp.txt" ]]; then
 			#need to update when the next test will occur since we have now started the current set of tests																		#only want to save the updated date once within the loop
-				if [[ $next_scan_time_window -eq 1 ]]; then
-					future_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)								 						#calculate 1 day from now, convert it to epoch time
-				elif [[ $next_scan_time_window -eq 2 ]]; then
-					future_scan_time=$(date --date="+7 days $time_hour:$time_min" +%s)								 						#calculate 7 day from now, convert it to epoch time
-				elif [[ $next_scan_time_window -eq 3 ]]; then
-					future_scan_time=$(date --date="+1 month $time_hour:$time_min" +%s)								 						#calculate 1 month from now, convert it to epoch time 
-				elif [[ $next_scan_time_window -eq 4 ]]; then
-					future_scan_time=$(date --date="+3 month $time_hour:$time_min" +%s)								 						#calculate 3 month from now, convert it to epoch time
-				elif [[ $next_scan_time_window -eq 5 ]]; then
-					future_scan_time=$(date --date="+6 month $time_hour:$time_min" +%s)								 						#calculate 6 month from now, convert it to epoch time
-				fi
+				
+				
+				future_scan_time=$(scan_time_recalculator $next_scan_time_window $time_hour $time_min)
 				echo -n "$future_scan_time" > "$temp_dir/scrubbing_next_scan_time_temp.txt"
 			fi
 		else
@@ -570,17 +573,8 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 				else
 					#file is missing, let's write to disk some default values. these values can then be adjusted in the web-interface
 					#next_scan_time_window: 1=daily, 2=weekly, 3=monthly, 4= every three months, 5= every 6 months
-					if [[ $next_scan_time_window -eq 1 ]]; then
-						next_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)								 						#calculate 1 day from now, convert it to epoch time
-					elif [[ $next_scan_time_window -eq 2 ]]; then
-						next_scan_time=$(date --date="+7 days $time_hour:$time_min" +%s)								 						#calculate 7 day from now, convert it to epoch time
-					elif [[ $next_scan_time_window -eq 3 ]]; then
-						next_scan_time=$(date --date="+1 month $time_hour:$time_min" +%s)								 						#calculate 1 month from now, convert it to epoch time 
-					elif [[ $next_scan_time_window -eq 4 ]]; then
-						next_scan_time=$(date --date="+3 month $time_hour:$time_min" +%s)								 						#calculate 3 month from now, convert it to epoch time
-					elif [[ $next_scan_time_window -eq 5 ]]; then
-						next_scan_time=$(date --date="+6 month $time_hour:$time_min" +%s)								 						#calculate 6 month from now, convert it to epoch time
-					fi
+					
+					next_scan_time=$(scan_time_recalculator $next_scan_time_window $time_hour $time_min)
 					echo -n "$next_scan_time" > "$config_file_location/next_scan_time.txt"
 				fi
 			fi
@@ -644,17 +638,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					#Just in case all drives have SMART disabled, we do not want to have emails sent every time this script executes, so let's update the next scheduled start time
 					#need to update when the next test will occur since we have now started the current set of tests
 					if [[ $date_updated -eq 0 ]]; then																			#only want to save the updated date once within the loop
-						if [[ $next_scan_time_window -eq 1 ]]; then
-							future_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)								 						#calculate 1 day from now, convert it to epoch time
-						elif [[ $next_scan_time_window -eq 2 ]]; then
-							future_scan_time=$(date --date="+7 days $time_hour:$time_min" +%s)								 						#calculate 7 day from now, convert it to epoch time
-						elif [[ $next_scan_time_window -eq 3 ]]; then
-							future_scan_time=$(date --date="+1 month $time_hour:$time_min" +%s)								 						#calculate 1 month from now, convert it to epoch time 
-						elif [[ $next_scan_time_window -eq 4 ]]; then
-							future_scan_time=$(date --date="+3 month $time_hour:$time_min" +%s)								 						#calculate 3 month from now, convert it to epoch time
-						elif [[ $next_scan_time_window -eq 5 ]]; then
-							future_scan_time=$(date --date="+6 month $time_hour:$time_min" +%s)								 						#calculate 6 month from now, convert it to epoch time
-						fi
+						
+						
+						future_scan_time=$(scan_time_recalculator $next_scan_time_window $time_hour $time_min)
 						echo -n "$future_scan_time" > "$config_file_location/next_scan_time.txt"
 						date_updated=1
 					fi
@@ -919,17 +905,8 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							
 							#need to update when the next test will occur since we have now started the current set of tests
 							if [[ $date_updated -eq 0 ]]; then																			#only want to save the updated date once within the loop
-								if [[ $next_scan_time_window -eq 1 ]]; then
-									future_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)								 						#calculate 1 day from now, convert it to epoch time
-								elif [[ $next_scan_time_window -eq 2 ]]; then
-									future_scan_time=$(date --date="+7 days $time_hour:$time_min" +%s)								 						#calculate 7 day from now, convert it to epoch time
-								elif [[ $next_scan_time_window -eq 3 ]]; then
-									future_scan_time=$(date --date="+1 month $time_hour:$time_min" +%s)								 						#calculate 1 month from now, convert it to epoch time 
-								elif [[ $next_scan_time_window -eq 4 ]]; then
-									future_scan_time=$(date --date="+3 month $time_hour:$time_min" +%s)								 						#calculate 3 month from now, convert it to epoch time
-								elif [[ $next_scan_time_window -eq 5 ]]; then
-									future_scan_time=$(date --date="+6 month $time_hour:$time_min" +%s)								 						#calculate 6 month from now, convert it to epoch time
-								fi
+								
+								future_scan_time=$(scan_time_recalculator $next_scan_time_window $time_hour $time_min)
 								echo -n "$future_scan_time" > "$config_file_location/next_scan_time.txt"
 								date_updated=1
 							fi
@@ -1082,17 +1059,8 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 										if [[ ! -r "$temp_dir/next_scan_time_temp.txt" ]]; then
 											#need to update when the next test will occur since we have now started the current set of tests
 											if [[ $date_updated -eq 0 ]]; then																			#only want to save the updated date once within the loop
-												if [[ $next_scan_time_window -eq 1 ]]; then
-													future_scan_time=$(date --date="+1 days $time_hour:$time_min" +%s)								 						#calculate 1 day from now, convert it to epoch time
-												elif [[ $next_scan_time_window -eq 2 ]]; then
-													future_scan_time=$(date --date="+7 days $time_hour:$time_min" +%s)								 						#calculate 7 day from now, convert it to epoch time
-												elif [[ $next_scan_time_window -eq 3 ]]; then
-													future_scan_time=$(date --date="+1 month $time_hour:$time_min" +%s)								 						#calculate 1 month from now, convert it to epoch time 
-												elif [[ $next_scan_time_window -eq 4 ]]; then
-													future_scan_time=$(date --date="+3 month $time_hour:$time_min" +%s)								 						#calculate 3 month from now, convert it to epoch time
-												elif [[ $next_scan_time_window -eq 5 ]]; then
-													future_scan_time=$(date --date="+6 month $time_hour:$time_min" +%s)								 						#calculate 6 month from now, convert it to epoch time
-												fi
+												
+												future_scan_time=$(scan_time_recalculator $next_scan_time_window $time_hour $time_min)
 												echo -n "$future_scan_time" > "$temp_dir/next_scan_time_temp.txt"
 												date_updated=1
 											fi
