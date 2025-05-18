@@ -1,7 +1,7 @@
 #!/bin/bash
 # shellcheck disable=SC2129,SC2155,SC2004,SC2034,SC2207,SC2001
 
-version="version 1.9 dated 11/19/2024"
+version="version 2.0 dated 5/18/2025"
 #By Brian Wallace
 
 echo -e "Script Version: $version\n\n"
@@ -24,7 +24,8 @@ echo -e "Script Version: $version\n\n"
 #########################################################
 #suggest to install the script in Synology web directory on volume1 at /volume1/web
 #if a different directory is desired, change variable "script_location" accordingly
-script_location="/volume1/web/synology_smart"
+script_location="/mnt/volume1/hosting/web/synology_smart"
+truenas=1
 
 #EMAIL SETTINGS USED IF CONFIGURATION FILE IS UNAVAILABLE
 #These variables will be overwritten with new corrected data if the configuration file loads properly. 
@@ -171,6 +172,17 @@ function send_email(){
 									echo -e "\n\nWARNING -- An error occurred while sending email. The error was: $email_response\n\n" |& tee "${3}/${4}"
 								fi	
 							fi
+						elif [[ ${7} -eq 3 ]]; then #TrueNAS
+							#https://github.com/oxyde1989/standalone-tn-send-email/tree/main
+					
+							#the command can only take one email address destination at a time. so if there are more than one email addresses in the list, we need to send them one at a time
+							address_explode=(`echo "${1}" | sed 's/;/\n/g'`)
+							local bb=0
+							for bb in "${!address_explode[@]}"; do
+								python3 /mnt/volume1/web/logging/multireport_sendemail.py --subject "${5}" --to_address "${address_explode[$bb]}" --mail_body_html "$now - ${6}" --override_fromemail "${2}"
+							done
+						
+						
 						else 
 							echo "Incorrect parameters supplied, cannot send email" |& tee "${3}/${4}"
 						fi
@@ -301,61 +313,83 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 		###############################################
 		#getting list of mdraid devices
 		###############################################
-		raid_device=$(mdadm --query --detail /dev/md* | grep /dev/md)
-		raid_device=(`echo $raid_device | sed 's/:/\n/g'`) #make an array of the results delineated by a :
-		num_raid_devices=${#raid_device[@]}
+		if [[ $truenas -eq 0 ]]; then 
+			raid_device=$(mdadm --query --detail /dev/md* | grep /dev/md)
+			raid_device=(`echo $raid_device | sed 's/:/\n/g'`) #make an array of the results delineated by a :
+			num_raid_devices=${#raid_device[@]}
+		fi
 
 
 		###############################################
 		#getting list of BTRFS volumes
 		###############################################
-		btrfs_volumes=$(btrfs filesystem show | grep /dev*)
-			#split the data into an array
-			SAVEIFS=$IFS   # Save current IFS (Internal Field Separator)
-			IFS=$'\n'      # Change IFS to newline char
-			btrfs_volumes=($btrfs_volumes) # split the `names` string into an array by the same name
-			IFS=$SAVEIFS   # Restore original IFS
+		if [[ $truenas -eq 0 ]]; then 
+			btrfs_volumes=$(btrfs filesystem show | grep /dev*)
+				#split the data into an array
+				SAVEIFS=$IFS   # Save current IFS (Internal Field Separator)
+				IFS=$'\n'      # Change IFS to newline char
+				btrfs_volumes=($btrfs_volumes) # split the `names` string into an array by the same name
+				IFS=$SAVEIFS   # Restore original IFS
 
-		num_btrfs_volumes=${#btrfs_volumes[@]}
+			num_btrfs_volumes=${#btrfs_volumes[@]}
+		fi
 		
 		
 		###############################################
 		#see if any of the BTRFS volumes are scrubbing or not
 		#scheduled SMART tests will be postponed if scrubbing is active
 		###############################################
-		xx=0
-		for xx in "${!btrfs_volumes[@]}"; do
-		
-			#need to convert the "/dev/mapper/cachedev_x" device name to a volume name like "/volume1"
-			volume_number=$(df | grep ${btrfs_volumes[$xx]#*path })
-			#returns: /dev/mapper/cachedev_0   14981718344  5599142460  9382575884  38% /volume1
-			volume_number=${volume_number#*% } #only keep everything after the "% " to keep only volume number
+		if [[ $truenas -eq 0 ]]; then 
+			xx=0
+			for xx in "${!btrfs_volumes[@]}"; do
 			
-			volume_details=$(btrfs scrub status -d -R ${btrfs_volumes[$xx]#*path }) #get BTRFS status details
-			volume_details=$(echo $volume_details | grep -E -A 2 "started at" | grep "running for") #search the BTRFS status for the word "running for" as that is only present if scrubbing is active
-			if [[ $volume_details == "" ]]; then
-				echo -e "$volume_number is not actively scrubbing\n"
-			else 
-				scrubbing_active=1
-				echo -e "$volume_number is currently scrubbing\n"
-			fi
-		done
+				#need to convert the "/dev/mapper/cachedev_x" device name to a volume name like "/volume1"
+				volume_number=$(df | grep ${btrfs_volumes[$xx]#*path })
+				#returns: /dev/mapper/cachedev_0   14981718344  5599142460  9382575884  38% /volume1
+				volume_number=${volume_number#*% } #only keep everything after the "% " to keep only volume number
+				
+				volume_details=$(btrfs scrub status -d -R ${btrfs_volumes[$xx]#*path }) #get BTRFS status details
+				volume_details=$(echo $volume_details | grep -E -A 2 "started at" | grep "running for") #search the BTRFS status for the word "running for" as that is only present if scrubbing is active
+				if [[ $volume_details == "" ]]; then
+					echo -e "$volume_number is not actively scrubbing\n"
+				else 
+					scrubbing_active=1
+					echo -e "$volume_number is currently scrubbing\n"
+				fi
+			done
+		fi
 		
 		
 		###############################################
 		#see if any of the RAID volumes are scrubbing or not
 		#scheduled SMART tests will be postponed if scrubbing is active
 		###############################################
-		xx=0
-		for xx in "${!raid_device[@]}"; do
-			volume_details=$(grep -E -A 2 ${raid_device[$xx]#*/dev/} /proc/mdstat | grep "finish=") #get mdRAID status, and search for the text "finish=" which is only found if a scrub is active
+		if [[ $truenas -eq 0 ]]; then 
+			xx=0
+			for xx in "${!raid_device[@]}"; do
+				volume_details=$(grep -E -A 2 ${raid_device[$xx]#*/dev/} /proc/mdstat | grep "finish=") #get mdRAID status, and search for the text "finish=" which is only found if a scrub is active
+				if [[ $volume_details == "" ]]; then #if no scrubbing is active, then the grep commands will return no text
+					echo -e "RAID device \"${raid_device[$xx]#*/dev/}\" is not performing scrubbing\n"
+				else
+					scrubbing_active=1
+					echo -e "RAID device \"${raid_device[$xx]#*/dev/}\" is currently scrubbing\n"
+				fi
+			done
+		fi
+		
+		###############################################
+		#see if any of the ZFS arrays are scrubbing
+		#scheduled SMART tests will be postponed if scrubbing is active
+		###############################################
+		if [[ $truenas -eq 1 ]]; then 
+			volume_details=$(zpool status | grep "scrub in progress") #get mdRAID status, and search for the text "finish=" which is only found if a scrub is active
 			if [[ $volume_details == "" ]]; then #if no scrubbing is active, then the grep commands will return no text
-				echo -e "RAID device \"${raid_device[$xx]#*/dev/}\" is not performing scrubbing\n"
+				echo -e "No Active ZFS Scrubbing\n"
 			else
 				scrubbing_active=1
-				echo -e "RAID device \"${raid_device[$xx]#*/dev/}\" is currently scrubbing\n"
+				echo -e "ZFS Scrubbig is Active\n"
 			fi
-		done
+		fi
 		
 		##################################################################################################################
 		#Get listing of all installed SATA drives in the system
@@ -622,9 +656,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					if [[ $enable_email_notifications -eq 1 ]]; then
 						if [[ -z "$syno_check" ]]; then
 							#not a Synology
-							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - WARNING - Disk ${disk_names[$xx]} SMART not enabled" "\nAttention!!\nDisk: ${disk_names[$xx]}\n\nSMART is not enabled. Unable to start Extended testing." "$use_send_mail"
+							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - WARNING - Disk ${disk_names[$xx]} SMART not enabled" "<br>Attention!!<br>Disk: ${disk_names[$xx]}<br><br>SMART is not enabled. Unable to start Extended testing." "$use_send_mail"
 						else
-							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - WARNING - ${disk_drive_slot} SMART not enabled" "\nAttention!!\n${disk_drive_slot}\n\nSMART is not enabled. Unable to start Extended testing." "$use_send_mail"
+							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - WARNING - ${disk_drive_slot} SMART not enabled" "<br>Attention!!<br>${disk_drive_slot}<br><br>SMART is not enabled. Unable to start Extended testing." "$use_send_mail"
 						fi
 					else
 						if [[ -z "$syno_check" ]]; then
@@ -700,9 +734,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 					if [[ $enable_email_notifications -eq 1 ]]; then
 						if [[ -z "$syno_check" ]]; then
 							#not a Synology)
-							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test Canceled by user" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nSMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
+							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test Canceled by user" "<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br>${disk_capacity_array[$xx]}<br><br>SMART test was canceled by the user.<br>Disk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
 						else
-							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test Canceled by user" "\n${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nSMART test was canceled by the user.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
+							send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test Canceled by user" "<br>${disk_drive_slot}<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br>${disk_capacity_array[$xx]}<br><br>SMART test was canceled by the user.<br>Disk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
 						fi
 					else
 						if [[ -z "$syno_check" ]]; then
@@ -783,9 +817,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 						if [[ $enable_email_notifications -eq 1 ]]; then
 							if [[ -z "$syno_check" ]]; then
 								#not a Synology
-								send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test MANUALLY started" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nSMART test was MANUALLY started." "$use_send_mail"
+								send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test MANUALLY started" "<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br>${disk_capacity_array[$xx]}<br><br>SMART test was MANUALLY started." "$use_send_mail"
 							else
-								send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test MANUALLY started" "\n${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nSMART test was MANUALLY started." "$use_send_mail"
+								send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test MANUALLY started" "<br>${disk_drive_slot}<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br>${disk_capacity_array[$xx]}<br><br>SMART test was MANUALLY started." "$use_send_mail"
 							fi
 						else
 							if [[ -z "$syno_check" ]]; then
@@ -838,9 +872,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 								if [[ ${disk_cancelation_array[$xx]} -eq 0 ]]; then
 									if [[ -z "$syno_check" ]]; then
 										#Not Synology
-										send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nSMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
+										send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br><br>SMART test has completed.<br>Disk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
 									else
-										send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test completed" "\n${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nSMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
+										send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test completed" "<br>${disk_drive_slot}<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br><br>SMART test has completed.<br>Disk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
 									fi
 								else
 									if [[ -z "$syno_check" ]]; then
@@ -883,9 +917,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							if [[ $enable_email_notifications -eq 1 ]]; then
 								if [[ -z "$syno_check" ]]; then
 									#Not Synology
-									send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test started" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nSMART test has started." "$use_send_mail"
+									send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test started" "<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br>${disk_capacity_array[$xx]}<br><br>SMART test has started." "$use_send_mail"
 								else
-									send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test started" "\n${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nSMART test has started." "$use_send_mail"
+									send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test started" "<br>${disk_drive_slot}<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br>${disk_capacity_array[$xx]}<br><br>SMART test has started." "$use_send_mail"
 								fi
 							else
 								if [[ -z "$syno_check" ]]; then
@@ -1005,9 +1039,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 									if [[ ${disk_cancelation_array[$xx]} -eq 0 ]]; then
 										if [[ -z "$syno_check" ]]; then
 											#Not Synology
-											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nSMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
+											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br><br>SMART test has completed.<br>Disk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
 										else
-											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test completed" "\n${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nSMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
+											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test completed" "<br>${disk_drive_slot}<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br><br>SMART test has completed.<br>Disk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
 										fi
 									else
 										if [[ -z "$syno_check" ]]; then
@@ -1080,9 +1114,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 										if [[ $enable_email_notifications -eq 1 ]]; then
 											if [[ -z "$syno_check" ]]; then
 												#Not Synology
-												send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test started" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nSMART test has started." "$use_send_mail"
+												send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test started" "<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br>${disk_capacity_array[$xx]}<br><br>SMART test has started." "$use_send_mail"
 											else
-												send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test started" "\n${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n${disk_capacity_array[$xx]}\n\nSMART test has started." "$use_send_mail"
+												send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test started" "<br>${disk_drive_slot}\nDisk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br>${disk_capacity_array[$xx]}<br><br>SMART test has started." "$use_send_mail"
 											fi
 										else
 											if [[ -z "$syno_check" ]]; then
@@ -1140,9 +1174,9 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 									if [[ ${disk_cancelation_array[$xx]} -eq 0 ]]; then
 										if [[ -z "$syno_check" ]]; then
 											#Not Synology
-											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nSMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
+											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - Disk ${disk_names[$xx]} SMART test completed" "<br>Disk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br><br>SMART test has completed.<br>Disk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
 										else
-											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test completed" "\n${disk_drive_slot}\nDisk: ${disk_names[$xx]}\nModel: ${disk_smart_model_array[$xx]}\nSerial: ${disk_smart_serial_array[$xx]}\n\nSMART test has completed.\nDisk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
+											send_email "$to_email_address" "$from_email_address" "$temp_dir" "$email_contents" "$NAS_name - ${disk_drive_slot} SMART test completed" "<br>${disk_drive_slot}\nDisk: ${disk_names[$xx]}<br>Model: ${disk_smart_model_array[$xx]}<br>Serial: ${disk_smart_serial_array[$xx]}<br><br>SMART test has completed.<br>Disk Status: ${disk_smart_pass_fail_array[$xx]}" "$use_send_mail"
 										fi
 									else
 										if [[ -z "$syno_check" ]]; then
