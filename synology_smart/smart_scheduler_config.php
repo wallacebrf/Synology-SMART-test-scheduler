@@ -1,5 +1,5 @@
 <?php
-$version="Version 1.9 Dated 11/19/2024";
+$version="Version 2.0 Dated 5/18/2025";
 //By Brian Wallace
 //Note Ensure the location of the configuration file matches the values in the synology_SMART_control.sh script 
 /*This web administration page allows for the configuration of all settings used in the synology_SMART_control.sh script file
@@ -15,9 +15,10 @@ that file with the above line would include the needed headers, footers, and cal
 //User Defined Variables
 ///////////////////////////////////////////////////
 error_reporting(E_NOTICE);
-$script_location="/volume1/web/synology_smart";
+$script_location="/var/www/html/synology_smart";
 $use_login_sessions=false; //set to false if not using user login sessions
-$form_submittal_destination="smart_scheduler_config.php";
+$form_submittal_destination="index.php?page=6&config_page=smart_schedule_server2";
+#$form_submittal_destination="smart_scheduler_config.php";
 $host_name=php_uname('n');
 $page_title="".$host_name." S.M.A.R.T Scheduler<br><font size=\"2\">".$version."</font>";
 
@@ -135,8 +136,8 @@ if($use_login_sessions){
 	}else{
 		$_SESSION["session_start_time"]=$current_time; //refresh session start time
 	}
-}else{
-	session_start();
+//}else{
+//	session_start();
 }
 
 $config_file="".$config_file_location."/".$config_file_name."";
@@ -241,7 +242,7 @@ if(isset($_POST['submit_smart']) && $_POST['randcheck']==$_SESSION['rand']){
 		[$NAS_name, $NAS_name_error] = test_input_processing($_POST['NAS_name'], $pieces[6], "name", 0, 0);
 	}
 	
-	[$use_send_mail, $use_send_mail_error] = test_input_processing($_POST['use_send_mail'], $pieces[7], "numeric", 0, 2);
+	[$use_send_mail, $use_send_mail_error] = test_input_processing($_POST['use_send_mail'], $pieces[7], "numeric", 0, 3);
 	  
 	$put_contents_string="".$script_enable.",".$next_scan_time_window.",".$enable_email_notifications.",".$from_email_address.",".$to_email_address.",".$next_scan_type.",".$NAS_name.",".$use_send_mail."";
 		  
@@ -257,8 +258,8 @@ if(isset($_POST['submit_smart']) && $_POST['randcheck']==$_SESSION['rand']){
 	$next_time=$pieces[1];
 	unset($_POST['submit_smart']);
 	unset($_POST['randcheck']);
-	header("Location: smart_scheduler_config.php");
-    exit;
+	header("Location: ".$form_submittal_destination."");
+    //exit;
 		  
 }else{
 	if (file_exists("$config_file")) {
@@ -359,15 +360,23 @@ print "					<p>Email Program : <select name=\"use_send_mail\">";
 						if ($use_send_mail==0){
 							print "<option value=\"0\" selected>Use ssmtp</option>
 							<option value=\"1\">Use Mail Plus Server</option>
-							<option value=\"2\">Use msmtp</option>";
+							<option value=\"2\">Use msmtp</option>
+							<option value=\"3\">TrueNAS</option>";
 						}else if ($use_send_mail==1){
 							print "<option value=\"0\">Use ssmtp</option>
 							<option value=\"1\" selected>Use Mail Plus Server</option>
-							<option value=\"2\">Use msmtp</option>";
+							<option value=\"2\">Use msmtp</option>
+							<option value=\"3\">TrueNAS</option>";
 						}else if ($use_send_mail==2){
 							print "<option value=\"0\">Use ssmtp</option>
 							<option value=\"1\">Use Mail Plus Server</option>
-							<option value=\"2\" selected>Use msmtp</option>";
+							<option value=\"2\" selected>Use msmtp</option>
+							<option value=\"3\">TrueNAS</option>";
+						}else if ($use_send_mail==3){
+							print "<option value=\"0\">Use ssmtp</option>
+							<option value=\"1\">Use Mail Plus Server</option>
+							<option value=\"2\">Use msmtp</option>
+							<option value=\"3\" selected>TrueNAS</option>";
 						}
 print "					</select></p>
 					</fieldset>
