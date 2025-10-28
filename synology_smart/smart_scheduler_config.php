@@ -20,16 +20,17 @@ $use_login_sessions=false; //set to false if not using user login sessions
 $form_submittal_destination="index.php?page=6&config_page=smart_schedule_server2";
 #$form_submittal_destination="smart_scheduler_config.php";
 $host_name=php_uname('n');
+$host_name="TrueNAS";
 $page_title="".$host_name." S.M.A.R.T Scheduler<br><font size=\"2\">".$version."</font>";
 
-$nas_ip=$_SERVER['SERVER_ADDR'];
+/*$nas_ip=$_SERVER['SERVER_ADDR'];
 if ($_SERVER['HTTPS'] == 0){
     $prot = "https://";
 }else{
     $prot = "http://";
 }
 $home="$prot$nas_ip";
-
+*/
 
 ///////////////////////////////////////////////////
 //Beginning file, do not edit past this point
