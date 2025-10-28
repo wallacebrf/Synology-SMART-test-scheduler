@@ -179,7 +179,7 @@ function send_email(){
 							address_explode=(`echo "${1}" | sed 's/;/\n/g'`)
 							local bb=0
 							for bb in "${!address_explode[@]}"; do
-								python3 /mnt/volume1/web/logging/multireport_sendemail.py --subject "${5}" --to_address "${address_explode[$bb]}" --mail_body_html "$now - ${6}" --override_fromemail "${2}"
+								python3 /mnt/volume1/logging/multireport_sendemail.py --subject "${5}" --to_address "${address_explode[$bb]}" --mail_body_html "$now - ${6}" --override_fromemail "${2}"
 							done
 						
 						
@@ -471,7 +471,12 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			disk_names+=("$disk")
 			
 			#use smartctl to get current SMART details from the drives
-			raw_data=$(smartctl -a -d sat "$disk" 2>/dev/null)
+			if [[ "$syno_check" ]]; then
+				#is a Synology
+				raw_data=$(smartctl -a -d sat "$disk" 2>/dev/null)
+			else
+				raw_data=$(smartctl -x "$disk" 2>/dev/null)
+			fi
 			
 			#extract the status, IE is s SMART test active or not?
 			disk_smart_status=$(echo "$raw_data" | grep -A 1 "Self-test execution status:" | tr '\n' ' ') #get SMART status for the disk
@@ -862,7 +867,13 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 							else
 								echo -e "Test Canceled by user: $(date +'%d/%m/%Y %H:%M:%S:%3N')\nTest Status: ${disk_smart_pass_fail_array[$xx]}\n\nFull SMART Test Details:\n\n" >> "$log_dir/history/$history_file_name"
 							fi
-							smartctl -a -d sat "${disk_names[$xx]}" 2>/dev/null >> "$log_dir/history/$history_file_name"
+							if [[ "$syno_check" ]]; then
+								#is a Synology
+								smartctl -a -d sat "${disk_names[$xx]}" 2>/dev/null >> "$log_dir/history/$history_file_name"
+							else
+								smartctl -x "${disk_names[$xx]}" 2>/dev/null >> "$log_dir/history/$history_file_name"
+							fi
+							
 							
 							#now that testing is complete, if the temp file exists, delete it
 							rm "$temp_dir/$disk_temp_file_name"
@@ -1247,7 +1258,12 @@ if [ -r "$config_file_location/$config_file_name" ]; then
 			disk_names+=("$disk")
 			
 			#use smartctl to get current SMART details from the drives
-			raw_data=$(smartctl -a -d sat "$disk" 2>/dev/null)
+			if [[ "$syno_check" ]]; then
+				#is a Synology
+				raw_data=$(smartctl -a -d sat "$disk" 2>/dev/null)
+			else
+				raw_data=$(smartctl -x "$disk" 2>/dev/null)
+			fi
 			
 			#extract the status, IE is s SMART test active or not?
 			disk_smart_status=$(echo "$raw_data" | grep -A 1 "Self-test execution status:" | tr '\n' ' ') #get SMART status for the disk
