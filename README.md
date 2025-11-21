@@ -1,5 +1,5 @@
 # SMART-test-scheduler
-Scheduler of SMART tests on Synology NAS and and Non-synolofy systems like TrueNAS. Currently running on 25.04.2.4 without issues. 
+Scheduler of SMART tests on Synology NAS and and Non-Synology systems like TrueNAS. Currently running on 25.04.2.4 without issues. 
 
 <div id="top"></div>
 <!--
