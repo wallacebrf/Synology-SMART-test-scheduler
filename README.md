@@ -1,5 +1,5 @@
-# Synology-SMART-test-scheduler
-Scheduler of Synology SMART tests
+# SMART-test-scheduler
+Scheduler of SMART tests on Synology NAS and and Non-synolofy systems like TrueNAS. Currently running on 25.04.2.4 without issues. 
 
 <div id="top"></div>
 <!--
@@ -12,10 +12,10 @@ Scheduler of Synology SMART tests
 <br />
 <div align="center">
 <img src="https://raw.githubusercontent.com/wallacebrf/Synology-SMART-test-scheduler/refs/heads/main/images/logo.png" alt="Logo" width="207" height="207">
-<h3 align="center">Synology SMART test scheduler + email notifications</h3>
+<h3 align="center">SMART test scheduler + email notifications</h3>
 
   <p align="center">
-    This project is comprised of a shell script that is configured in Synology Task Scheduler to run once every 10 to 15 minutes. The script performs commands to perform SMART tests on a user defined schedule.  
+    This project is comprised of a shell script that is configured in run once every 10 to 15 minutes. The script performs commands to perform SMART tests on a user defined schedule.  
     <br />
     <a href="https://github.com/wallacebrf/Synology-SMART-test-scheduler"><strong>Explore the docs »</strong></a>
     <br />
